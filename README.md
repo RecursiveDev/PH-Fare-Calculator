@@ -22,11 +22,9 @@ Unlike city-centric navigation apps, this tool focuses on **"How much?"** rather
 ## 🛠 Tech Stack
 
 - **Framework:** Flutter (v3.16+) & Dart
-- **Maps:** `flutter_map` (OpenStreetMap tiles)
 - **Routing API:** OSRM (Open Source Routing Machine) - *Configurable to switch to Mapbox/Google*.
 - **Local Storage:** Hive (NoSQL) for caching and favorites.
-- **State Management:** Provider / Riverpod (Choose your preference during setup).
-- **Backend:** Firebase Remote Config (for updating fare rates without app updates).
+- **HTTP Client:** `http` package
 
 ## 🧮 How It Works (The Hybrid Engine)
 
@@ -37,7 +35,7 @@ Used for **Jeepneys, Buses, Taxis, UV Express**.
 > `Fare = Base Fare + ((OSRM Distance * 1.15) * Per KM Rate)`
 
 *   **Why 1.15?** Public transport routes are rarely as direct as private car routes. We add a 15% variance factor to OSRM's output to approximate real-world travel.
-*   **Traffic Logic:** Taxis include a time-based "Wait Cost" buffer in the formula.
+*   **Provincial Variance:** A 20% variance is applied to the total fare when the "Provincial" toggle is enabled.
 
 ### 2. Matrix-Based (Fixed)
 Used for **MRT, LRT, PNR, and Ferries**.
@@ -66,7 +64,7 @@ Distance formulas fail here (e.g., Rail distance ≠ Road distance).
     ```
 
 3.  **Configure API (Optional)**
-    By default, the app uses the public OSRM demo server. For production or heavy testing, update `lib/config/api_keys.dart` with your own server URL.
+    By default, the app uses the public OSRM demo server. For production or heavy testing, update `lib/src/services/osrm_api_service.dart` with your own server URL.
 
 4.  **Run the App**
     ```bash
@@ -77,14 +75,13 @@ Distance formulas fail here (e.g., Rail distance ≠ Road distance).
 
 ```
 lib/
-├── core/             # Logic for Fare Formulas & Constants
-├── data/             # Repositories & API Services (OSRM)
-├── models/           # Data Models (TransportMode, RouteResult)
-├── ui/               # Screens & Widgets
-│   ├── search/       # Origin/Dest Input
-│   ├── results/      # Fare Cards & Comparison
-│   └── common/       # Shared UI (Scam Indicator, Buttons)
-├── utils/            # Helpers (Currency Formatter, Distance Calc)
+├── src/
+│   ├── core/             # Logic for Fare Formulas & Constants
+│   ├── models/           # Data Models (TransportMode, RouteResult)
+│   ├── presentation/     # Screens & Widgets
+│   │   ├── screens/      # Main Screen
+│   │   └── widgets/      # Reusable UI Components
+│   ├── services/         # Repositories & API Services (OSRM)
 └── main.dart
 ```
 
