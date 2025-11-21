@@ -11,10 +11,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:ph_fare_estimator/src/services/remote_config_service.dart';
 import 'package:ph_fare_estimator/src/services/settings_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   
   // Initialize Firebase with demo project options
   await Firebase.initializeApp(

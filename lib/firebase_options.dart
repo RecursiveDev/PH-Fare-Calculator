@@ -3,6 +3,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -40,47 +41,47 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAbxI_z8lvUw2b5ckjQEy40sKSptQLPKNk',
-    appId: '1:491367081694:web:bb5a47f0d8f0c4e04dc44f',
-    messagingSenderId: '491367081694',
-    projectId: 'ph-fare-calculator',
-    authDomain: 'ph-fare-calculator.firebaseapp.com',
-    storageBucket: 'ph-fare-calculator.firebasestorage.app',
-  );
+  static FirebaseOptions get web => FirebaseOptions(
+        apiKey: dotenv.env['FIREBASE_WEB_API_KEY']!,
+        appId: '1:491367081694:web:bb5a47f0d8f0c4e04dc44f',
+        messagingSenderId: '491367081694',
+        projectId: 'ph-fare-calculator',
+        authDomain: 'ph-fare-calculator.firebaseapp.com',
+        storageBucket: 'ph-fare-calculator.firebasestorage.app',
+      );
 
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAbxI_z8lvUw2b5ckjQEy40sKSptQLPKNk',
-    appId: '1:491367081694:android:9fbd1b4d96e0b0cb4dc44f',
-    messagingSenderId: '491367081694',
-    projectId: 'ph-fare-calculator',
-    storageBucket: 'ph-fare-calculator.firebasestorage.app',
-  );
+  static FirebaseOptions get android => FirebaseOptions(
+        apiKey: dotenv.env['FIREBASE_ANDROID_API_KEY']!,
+        appId: '1:491367081694:android:9fbd1b4d96e0b0cb4dc44f',
+        messagingSenderId: '491367081694',
+        projectId: 'ph-fare-calculator',
+        storageBucket: 'ph-fare-calculator.firebasestorage.app',
+      );
 
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAwhxRItDsxBK0Ze_H4CGicWM85UR5z4tQ',
-    appId: '1:491367081694:ios:bb5a47f0d8f0c4e04dc44f',
-    messagingSenderId: '491367081694',
-    projectId: 'ph-fare-calculator',
-    storageBucket: 'ph-fare-calculator.firebasestorage.app',
-    iosBundleId: 'com.phFareCalculator',
-  );
+  static FirebaseOptions get ios => FirebaseOptions(
+        apiKey: dotenv.env['FIREBASE_IOS_API_KEY']!,
+        appId: '1:491367081694:ios:bb5a47f0d8f0c4e04dc44f',
+        messagingSenderId: '491367081694',
+        projectId: 'ph-fare-calculator',
+        storageBucket: 'ph-fare-calculator.firebasestorage.app',
+        iosBundleId: 'com.phFareCalculator',
+      );
 
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAwhxRItDsxBK0Ze_H4CGicWM85UR5z4tQ',
-    appId: '1:491367081694:macos:bb5a47f0d8f0c4e04dc44f',
-    messagingSenderId: '491367081694',
-    projectId: 'ph-fare-calculator',
-    storageBucket: 'ph-fare-calculator.firebasestorage.app',
-    iosBundleId: 'com.phFareCalculator',
-  );
+  static FirebaseOptions get macos => FirebaseOptions(
+        apiKey: dotenv.env['FIREBASE_MACOS_API_KEY']!,
+        appId: '1:491367081694:macos:bb5a47f0d8f0c4e04dc44f',
+        messagingSenderId: '491367081694',
+        projectId: 'ph-fare-calculator',
+        storageBucket: 'ph-fare-calculator.firebasestorage.app',
+        iosBundleId: 'com.phFareCalculator',
+      );
 
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAbxI_z8lvUw2b5ckjQEy40sKSptQLPKNk',
-    appId: '1:491367081694:windows:bb5a47f0d8f0c4e04dc44f',
-    messagingSenderId: '491367081694',
-    projectId: 'ph-fare-calculator',
-    authDomain: 'ph-fare-calculator.firebaseapp.com',
-    storageBucket: 'ph-fare-calculator.firebasestorage.app',
-  );
+  static FirebaseOptions get windows => FirebaseOptions(
+        apiKey: dotenv.env['FIREBASE_WINDOWS_API_KEY']!,
+        appId: '1:491367081694:windows:bb5a47f0d8f0c4e04dc44f',
+        messagingSenderId: '491367081694',
+        projectId: 'ph-fare-calculator',
+        authDomain: 'ph-fare-calculator.firebaseapp.com',
+        storageBucket: 'ph-fare-calculator.firebasestorage.app',
+      );
 }
