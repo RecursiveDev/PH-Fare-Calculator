@@ -26,6 +26,26 @@ enum TransportMode {
     }
   }
 
+  /// Get a tourist-friendly description of the transport mode
+  String get description {
+    switch (this) {
+      case TransportMode.jeepney:
+        return 'Iconic colorful open-air vehicle, the most popular form of public transport in the Philippines. Great for short to medium distances.';
+      case TransportMode.bus:
+        return 'Large public buses for longer routes. Choose between traditional (non-aircon), aircon, or premium/deluxe options.';
+      case TransportMode.taxi:
+        return 'Metered taxis available throughout Metro Manila. White taxis for general use, yellow for airport service. Also includes app-based rides.';
+      case TransportMode.train:
+        return 'Metro Manila\'s rapid transit system including LRT (Light Rail Transit), MRT (Metro Rail Transit), and PNR (Philippine National Railways).';
+      case TransportMode.ferry:
+        return 'Water transport connecting islands and coastal areas. Essential for inter-island travel in the Philippines.';
+      case TransportMode.tricycle:
+        return 'Motorcycle with sidecar, perfect for short distances and narrow streets. Fares are often negotiable.';
+      case TransportMode.uvExpress:
+        return 'Modern air-conditioned vans operating on fixed routes. Faster than jeepneys with comfortable seating.';
+    }
+  }
+
   static TransportMode fromString(String mode) {
     return TransportMode.values.firstWhere(
       (e) => e.displayName.toLowerCase() == mode.toLowerCase(),

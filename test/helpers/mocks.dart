@@ -94,6 +94,25 @@ class MockSettingsService implements SettingsService {
   Future<bool> isTransportModeHidden(String mode, String subType) async {
     return hiddenTransportModes.contains('$mode::$subType');
   }
+
+  Location? lastLocation;
+
+  @override
+  Future<void> saveLastLocation(Location location) async {
+    lastLocation = location;
+  }
+
+  @override
+  Future<Location?> getLastLocation() async {
+    return lastLocation;
+  }
+
+  bool hasSetDiscount = false;
+
+  @override
+  Future<bool> hasSetDiscountType() async {
+    return hasSetDiscount;
+  }
 }
 
 class MockGeocodingService implements GeocodingService {

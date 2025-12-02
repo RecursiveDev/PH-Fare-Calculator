@@ -7,6 +7,7 @@ import '../../core/di/injection.dart';
 import '../../core/errors/failures.dart';
 import '../../core/hybrid_engine.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/discount_type.dart';
 import '../../models/fare_formula.dart';
 import '../../models/fare_result.dart';
 import '../../models/location.dart';
@@ -38,6 +39,7 @@ class _MainScreenState extends State<MainScreen> {
   final HybridEngine _hybridEngine = getIt<HybridEngine>();
   final FareRepository _fareRepository = getIt<FareRepository>();
   final RoutingService _routingService = getIt<RoutingService>();
+  final SettingsService _settingsService = getIt<SettingsService>();
   List<FareFormula> _availableFormulas = [];
   bool _isLoading = true;
 
@@ -54,6 +56,9 @@ class _MainScreenState extends State<MainScreen> {
   List<FareResult> _fareResults = [];
   String? _errorMessage;
   bool _isLoadingLocation = false;
+  
+  // Text controller for origin field
+  final TextEditingController _originTextController = TextEditingController();
 
   @override
   void initState() {
@@ -65,18 +70,91 @@ class _MainScreenState extends State<MainScreen> {
   void dispose() {
     _originDebounceTimer?.cancel();
     _destinationDebounceTimer?.cancel();
+    _originTextController.dispose();
     super.dispose();
   }
 
   Future<void> _initializeData() async {
     // Data is already seeded in Splash Screen
     final formulas = await _fareRepository.getAllFormulas();
+    
+    // Load last known location if available
+    final lastLocation = await _settingsService.getLastLocation();
+    
+    // Check if user has set their discount type
+    final hasSetDiscountType = await _settingsService.hasSetDiscountType();
+    
     if (mounted) {
       setState(() {
         _availableFormulas = formulas;
         _isLoading = false;
+        
+        // Auto-fill origin if last location exists
+        if (lastLocation != null) {
+          _originLocation = lastLocation;
+          _originLatLng = LatLng(lastLocation.latitude, lastLocation.longitude);
+          _originTextController.text = lastLocation.name;
+        }
       });
+      
+      // Show first-time passenger type prompt if not set
+      if (!hasSetDiscountType) {
+        _showFirstTimePassengerTypePrompt();
+      }
     }
+  }
+
+  /// Show a dialog prompting first-time users to select their passenger type
+  Future<void> _showFirstTimePassengerTypePrompt() async {
+    // Use a short delay to ensure the widget is fully built
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    if (!mounted) return;
+    
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Welcome to PH Fare Estimator'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Please select your passenger type to get accurate fare estimates:',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'This can be changed later in Settings.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await _settingsService.setUserDiscountType(DiscountType.standard);
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Regular'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await _settingsService.setUserDiscountType(DiscountType.discounted);
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Discounted (Student/Senior/PWD)'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -126,6 +204,7 @@ class _MainScreenState extends State<MainScreen> {
             _buildLocationAutocomplete(
               label: AppLocalizations.of(context)!.originLabel,
               isOriginField: true,
+              textController: _originTextController,
               onSelected: (Location location) {
                 setState(() {
                   _originLocation = location;
@@ -216,6 +295,7 @@ class _MainScreenState extends State<MainScreen> {
                     transportMode: result.transportMode,
                     fare: result.fare,
                     indicatorLevel: result.indicatorLevel,
+                    isRecommended: result.isRecommended,
                   );
                 },
               ),
@@ -230,6 +310,7 @@ class _MainScreenState extends State<MainScreen> {
     required String label,
     required bool isOriginField,
     required ValueChanged<Location> onSelected,
+    TextEditingController? textController,
   }) {
     final isOrigin = isOriginField;
     
@@ -237,6 +318,7 @@ class _MainScreenState extends State<MainScreen> {
       builder: (context, constraints) {
         return Autocomplete<Location>(
           displayStringForOption: (Location option) => option.name,
+          initialValue: textController != null ? TextEditingValue(text: textController.text) : null,
           optionsBuilder: (TextEditingValue textEditingValue) async {
             if (textEditingValue.text.trim().isEmpty) {
               return const Iterable<Location>.empty();
@@ -481,10 +563,14 @@ class _MainScreenState extends State<MainScreen> {
     });
 
     try {
+      // Save the origin location for persistence
+      if (_originLocation != null) {
+        await _settingsService.saveLastLocation(_originLocation!);
+      }
+      
       final List<FareResult> results = [];
-      final settingsService = getIt<SettingsService>();
-      final trafficFactor = await settingsService.getTrafficFactor();
-      final hiddenModes = await settingsService.getHiddenTransportModes();
+      final trafficFactor = await _settingsService.getTrafficFactor();
+      final hiddenModes = await _settingsService.getHiddenTransportModes();
 
       // Filter formulas: exclude hidden modes
       final visibleFormulas = _availableFormulas.where((formula) {
@@ -523,7 +609,21 @@ class _MainScreenState extends State<MainScreen> {
             transportMode: '${formula.mode} (${formula.subType})',
             fare: fare,
             indicatorLevel: indicator,
+            isRecommended: false, // Will be set after sorting
           ),
+        );
+      }
+
+      // Sort results by price (cheapest first)
+      results.sort((a, b) => a.fare.compareTo(b.fare));
+
+      // Mark the cheapest option as recommended
+      if (results.isNotEmpty) {
+        results[0] = FareResult(
+          transportMode: results[0].transportMode,
+          fare: results[0].fare,
+          indicatorLevel: results[0].indicatorLevel,
+          isRecommended: true,
         );
       }
 

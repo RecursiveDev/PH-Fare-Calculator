@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/discount_type.dart';
+import '../models/location.dart';
 
 enum TrafficFactor { low, medium, high }
 
@@ -12,7 +13,11 @@ class SettingsService {
   static const String _keyHighContrastEnabled = 'isHighContrastEnabled';
   static const String _keyLocale = 'locale';
   static const String _keyUserDiscountType = 'user_discount_type';
+  static const String _keyHasSetDiscountType = 'has_set_discount_type';
   static const String _keyHiddenTransportModes = 'hidden_transport_modes';
+  static const String _keyLastLatitude = 'last_known_latitude';
+  static const String _keyLastLongitude = 'last_known_longitude';
+  static const String _keyLastLocationName = 'last_known_location_name';
 
   static final ValueNotifier<bool> highContrastNotifier = ValueNotifier(false);
   static final ValueNotifier<Locale> localeNotifier = ValueNotifier(
@@ -94,6 +99,13 @@ class SettingsService {
       return DiscountType.standard;
     }
 
+    // Migration: Convert old discount types (student, senior, pwd) to new consolidated 'discounted' type
+    if (value == 'student' || value == 'senior' || value == 'pwd') {
+      // Migrate to new consolidated type
+      await setUserDiscountType(DiscountType.discounted);
+      return DiscountType.discounted;
+    }
+
     try {
       return DiscountType.values.firstWhere(
         (e) => e.name == value,
@@ -107,7 +119,14 @@ class SettingsService {
   Future<void> setUserDiscountType(DiscountType discountType) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyUserDiscountType, discountType.name);
+    await prefs.setBool(_keyHasSetDiscountType, true);
     discountTypeNotifier.value = discountType;
+  }
+
+  /// Check if the user has ever set their discount type preference
+  Future<bool> hasSetDiscountType() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyHasSetDiscountType) ?? false;
   }
 
   /// Get the list of hidden transport modes (stored as "Mode::SubType" strings)
@@ -137,5 +156,31 @@ class SettingsService {
   Future<bool> isTransportModeHidden(String mode, String subType) async {
     final hiddenModes = await getHiddenTransportModes();
     return hiddenModes.contains('$mode::$subType');
+  }
+
+  /// Save the last known location (for persistence between sessions)
+  Future<void> saveLastLocation(Location location) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_keyLastLatitude, location.latitude);
+    await prefs.setDouble(_keyLastLongitude, location.longitude);
+    await prefs.setString(_keyLastLocationName, location.name);
+  }
+
+  /// Get the last known location (returns null if not previously saved)
+  Future<Location?> getLastLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    final latitude = prefs.getDouble(_keyLastLatitude);
+    final longitude = prefs.getDouble(_keyLastLongitude);
+    final name = prefs.getString(_keyLastLocationName);
+
+    if (latitude == null || longitude == null || name == null) {
+      return null;
+    }
+
+    return Location(
+      name: name,
+      latitude: latitude,
+      longitude: longitude,
+    );
   }
 }

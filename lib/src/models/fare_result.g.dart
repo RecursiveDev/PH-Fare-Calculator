@@ -20,19 +20,22 @@ class FareResultAdapter extends TypeAdapter<FareResult> {
       transportMode: fields[0] as String,
       fare: fields[1] as double,
       indicatorLevel: fields[2] as IndicatorLevel,
+      isRecommended: fields[3] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, FareResult obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.transportMode)
       ..writeByte(1)
       ..write(obj.fare)
       ..writeByte(2)
-      ..write(obj.indicatorLevel);
+      ..write(obj.indicatorLevel)
+      ..writeByte(3)
+      ..write(obj.isRecommended);
   }
 
   @override

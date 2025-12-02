@@ -84,6 +84,8 @@ class _ReferenceScreenState extends State<ReferenceScreen> {
               : ListView(
                   padding: const EdgeInsets.all(16.0),
                   children: [
+                    _buildDiscountInfoSection(),
+                    const SizedBox(height: 24.0),
                     _buildRoadTransportSection(),
                     const SizedBox(height: 24.0),
                     _buildTrainSection(),
@@ -91,6 +93,118 @@ class _ReferenceScreenState extends State<ReferenceScreen> {
                     _buildFerrySection(),
                   ],
                 ),
+    );
+  }
+
+  Widget _buildDiscountInfoSection() {
+    return Card(
+      elevation: 2,
+      color: Colors.blue[50],
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue[700], size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  'Discount Information',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue[900],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            _buildDiscountRow(
+              icon: Icons.school,
+              category: 'Students',
+              discount: '20% off base fare',
+            ),
+            const SizedBox(height: 8),
+            _buildDiscountRow(
+              icon: Icons.elderly,
+              category: 'Senior Citizens (60+)',
+              discount: '20% off base fare',
+            ),
+            const SizedBox(height: 8),
+            _buildDiscountRow(
+              icon: Icons.accessible,
+              category: 'Persons with Disabilities (PWD)',
+              discount: '20% off base fare',
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber[700]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.lightbulb_outline, color: Colors.amber[800], size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Valid ID required for discount eligibility. Discount applies to most public transport modes.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.amber[900],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDiscountRow({
+    required IconData icon,
+    required String category,
+    required String discount,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.blue[600], size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            category,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.green[100],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.green[700]!),
+          ),
+          child: Text(
+            discount,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Colors.green[800],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../../services/settings_service.dart';
 import '../../models/discount_type.dart';
 import '../../models/fare_formula.dart';
+import '../../models/transport_mode.dart';
 import '../../repositories/fare_repository.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -190,37 +191,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                 ),
                 RadioListTile<DiscountType>(
-                  title: Text(DiscountType.student.displayName),
-                  subtitle: const Text('20% discount (RA 11314)'),
-                  value: DiscountType.student,
-                  groupValue: _discountType,
-                  onChanged: (DiscountType? value) async {
-                    if (value != null) {
-                      setState(() {
-                        _discountType = value;
-                      });
-                      await _settingsService.setUserDiscountType(value);
-                    }
-                  },
-                ),
-                RadioListTile<DiscountType>(
-                  title: Text(DiscountType.senior.displayName),
-                  subtitle: const Text('20% discount (RA 9994)'),
-                  value: DiscountType.senior,
-                  groupValue: _discountType,
-                  onChanged: (DiscountType? value) async {
-                    if (value != null) {
-                      setState(() {
-                        _discountType = value;
-                      });
-                      await _settingsService.setUserDiscountType(value);
-                    }
-                  },
-                ),
-                RadioListTile<DiscountType>(
-                  title: Text(DiscountType.pwd.displayName),
-                  subtitle: const Text('20% discount (RA 7277)'),
-                  value: DiscountType.pwd,
+                  title: Text(DiscountType.discounted.displayName),
+                  subtitle: const Text('20% discount (RA 11314, RA 9994, RA 7277)'),
+                  value: DiscountType.discounted,
                   groupValue: _discountType,
                   onChanged: (DiscountType? value) async {
                     if (value != null) {
@@ -245,14 +218,105 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   child: Text(
-                    'Select which transport modes to include in fare calculations',
+                    'Learn about Philippine transport options and select which modes to include in calculations',
                     style: const TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ..._buildTransportModeDescriptions(),
+                const SizedBox(height: 16.0),
+                const Divider(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 8.0),
+                  child: Text(
+                    'Available Transport Options',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 ..._buildTransportModeToggles(),
               ],
             ),
     );
+  }
+
+  List<Widget> _buildTransportModeDescriptions() {
+    final widgets = <Widget>[];
+    
+    // Get unique transport modes from formulas
+    final uniqueModes = _groupedFormulas.keys.toSet();
+    
+    for (final modeStr in uniqueModes) {
+      try {
+        final mode = TransportMode.fromString(modeStr);
+        
+        widgets.add(
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            elevation: 1,
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _getIconForMode(mode),
+                        size: 20,
+                        color: Colors.blue[700],
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        mode.displayName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    mode.description,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      } catch (e) {
+        // Skip if mode string doesn't match enum
+        continue;
+      }
+    }
+    
+    return widgets;
+  }
+
+  IconData _getIconForMode(TransportMode mode) {
+    switch (mode) {
+      case TransportMode.jeepney:
+        return Icons.directions_bus;
+      case TransportMode.bus:
+        return Icons.airport_shuttle;
+      case TransportMode.taxi:
+        return Icons.local_taxi;
+      case TransportMode.train:
+        return Icons.train;
+      case TransportMode.ferry:
+        return Icons.directions_boat;
+      case TransportMode.tricycle:
+        return Icons.pedal_bike;
+      case TransportMode.uvExpress:
+        return Icons.local_shipping;
+    }
   }
 
   List<Widget> _buildTransportModeToggles() {

@@ -119,6 +119,12 @@ class _MapSelectionWidgetState extends State<MapSelectionWidget> {
       );
     }
 
+    // Define Philippines bounds to restrict map view
+    final philippinesBounds = LatLngBounds(
+      const LatLng(4.215806, 116.931557),  // Southwest corner
+      const LatLng(21.321780, 126.605345), // Northeast corner
+    );
+
     return Stack(
       children: [
         FlutterMap(
@@ -126,7 +132,11 @@ class _MapSelectionWidgetState extends State<MapSelectionWidget> {
           options: MapOptions(
             initialCenter: const LatLng(14.5995, 120.9842), // Manila coordinates
             initialZoom: 11.0,
+            minZoom: 5.0, // Prevent zooming out too far
             onTap: _handleTap,
+            cameraConstraint: CameraConstraint.contain(
+              bounds: philippinesBounds,
+            ),
             interactionOptions: const InteractionOptions(
               flags: InteractiveFlag.all,
             ),

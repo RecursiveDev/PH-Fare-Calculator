@@ -20,10 +20,13 @@ class FareResult {
   final double fare;
   @HiveField(2)
   final IndicatorLevel indicatorLevel;
+  @HiveField(3)
+  final bool isRecommended;
 
   FareResult({
     required this.transportMode,
     required this.fare,
     required this.indicatorLevel,
+    this.isRecommended = false,
   });
 }

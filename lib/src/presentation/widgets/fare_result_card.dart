@@ -5,12 +5,14 @@ class FareResultCard extends StatelessWidget {
   final String transportMode;
   final double fare;
   final IndicatorLevel indicatorLevel;
+  final bool isRecommended;
 
   const FareResultCard({
     super.key,
     required this.transportMode,
     required this.fare,
     required this.indicatorLevel,
+    this.isRecommended = false,
   });
 
   Color _getColor(IndicatorLevel level) {
@@ -29,12 +31,12 @@ class FareResultCard extends StatelessWidget {
     final color = _getColor(indicatorLevel);
 
     return Semantics(
-      label: 'Fare estimate for $transportMode is ${fare.toStringAsFixed(2)} pesos. Traffic level: ${indicatorLevel.name}.',
+      label: 'Fare estimate for $transportMode is ${fare.toStringAsFixed(2)} pesos. Traffic level: ${indicatorLevel.name}.${isRecommended ? ' Best Value option.' : ''}',
       child: Card(
-        elevation: 4,
+        elevation: isRecommended ? 8 : 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
-          side: BorderSide(color: color, width: 2.0),
+          side: BorderSide(color: color, width: isRecommended ? 3.0 : 2.0),
         ),
         child: Container(
           padding: const EdgeInsets.all(16.0),
@@ -45,6 +47,35 @@ class FareResultCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (isRecommended) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.star,
+                      color: Colors.amber[700],
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'BEST VALUE',
+                      style: TextStyle(
+                        color: Colors.amber[700],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.star,
+                      color: Colors.amber[700],
+                      size: 20,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12.0),
+              ],
               Text(
                 transportMode,
                 style: Theme.of(

@@ -56,10 +56,10 @@ void main() {
       minimumFare: 13.0,
     );
 
-    test('HAPPY PATH: Student discount applies 20% reduction', () async {
+    test('HAPPY PATH: Discounted passenger type applies 20% reduction', () async {
       // Setup: 5km route
       mockRoutingService.distanceToReturn = 5000.0;
-      mockSettingsService.discountType = DiscountType.student;
+      mockSettingsService.discountType = DiscountType.discounted;
 
       final fare = await hybridEngine.calculateDynamicFare(
         originLat: 14.0,
@@ -71,36 +71,6 @@ void main() {
 
       // Expected without discount: 13.0 + (5.75 * 1.80) = 23.35
       // With 20% discount: 23.35 * 0.80 = 18.68
-      expect(fare, closeTo(18.68, 0.01));
-    });
-
-    test('HAPPY PATH: Senior discount applies 20% reduction', () async {
-      mockRoutingService.distanceToReturn = 5000.0;
-      mockSettingsService.discountType = DiscountType.senior;
-
-      final fare = await hybridEngine.calculateDynamicFare(
-        originLat: 14.0,
-        originLng: 121.0,
-        destLat: 14.1,
-        destLng: 121.1,
-        formula: testFormula,
-      );
-
-      expect(fare, closeTo(18.68, 0.01));
-    });
-
-    test('HAPPY PATH: PWD discount applies 20% reduction', () async {
-      mockRoutingService.distanceToReturn = 5000.0;
-      mockSettingsService.discountType = DiscountType.pwd;
-
-      final fare = await hybridEngine.calculateDynamicFare(
-        originLat: 14.0,
-        originLng: 121.0,
-        destLat: 14.1,
-        destLng: 121.1,
-        formula: testFormula,
-      );
-
       expect(fare, closeTo(18.68, 0.01));
     });
 
@@ -123,7 +93,7 @@ void main() {
     test('EDGE CASE: Discount applies to minimum fare', () async {
       // Very short distance where minimum fare kicks in
       mockRoutingService.distanceToReturn = 100.0; // 0.1km
-      mockSettingsService.discountType = DiscountType.student;
+      mockSettingsService.discountType = DiscountType.discounted;
 
       final fare = await hybridEngine.calculateDynamicFare(
         originLat: 14.0,
@@ -143,25 +113,19 @@ void main() {
 
     test('BOUNDARY: Discount type enum values are correct', () {
       expect(DiscountType.standard.displayName, 'Regular');
-      expect(DiscountType.student.displayName, 'Student');
-      expect(DiscountType.senior.displayName, 'Senior Citizen');
-      expect(DiscountType.pwd.displayName, 'PWD');
+      expect(DiscountType.discounted.displayName, 'Discounted (Student/Senior/PWD)');
 
       expect(DiscountType.standard.isEligibleForDiscount, false);
-      expect(DiscountType.student.isEligibleForDiscount, true);
-      expect(DiscountType.senior.isEligibleForDiscount, true);
-      expect(DiscountType.pwd.isEligibleForDiscount, true);
+      expect(DiscountType.discounted.isEligibleForDiscount, true);
 
       expect(DiscountType.standard.fareMultiplier, 1.0);
-      expect(DiscountType.student.fareMultiplier, 0.80);
-      expect(DiscountType.senior.fareMultiplier, 0.80);
-      expect(DiscountType.pwd.fareMultiplier, 0.80);
+      expect(DiscountType.discounted.fareMultiplier, 0.80);
     });
 
     test('INTEGRATION: Discount persists in settings service', () async {
-      await mockSettingsService.setUserDiscountType(DiscountType.student);
+      await mockSettingsService.setUserDiscountType(DiscountType.discounted);
       final retrieved = await mockSettingsService.getUserDiscountType();
-      expect(retrieved, DiscountType.student);
+      expect(retrieved, DiscountType.discounted);
 
       await mockSettingsService.setUserDiscountType(DiscountType.standard);
       final updated = await mockSettingsService.getUserDiscountType();
@@ -293,12 +257,10 @@ void main() {
       expect(find.text('Passenger Type'), findsOneWidget);
       // Note: Radio button text appears as subtitle, not main text
       expect(find.text('No discount'), findsOneWidget);
-      expect(find.text('20% discount (RA 11314)'), findsOneWidget);
-      expect(find.text('20% discount (RA 9994)'), findsOneWidget);
-      expect(find.text('20% discount (RA 7277)'), findsOneWidget);
+      expect(find.text('20% discount (RA 11314, RA 9994, RA 7277)'), findsOneWidget);
     });
 
-    testWidgets('HAPPY PATH: Selecting Student updates settings', (
+    testWidgets('HAPPY PATH: Selecting Discounted updates settings', (
       WidgetTester tester,
     ) async {
       mockFareRepository.formulasToReturn = [];
@@ -308,41 +270,18 @@ void main() {
       await tester.pump();
       await tester.pumpAndSettle();
 
-      // Find by the radio tile with student value
-      final studentRadio = find.byWidgetPredicate(
+      // Find by the radio tile with discounted value
+      final discountedRadio = find.byWidgetPredicate(
         (widget) =>
             widget is RadioListTile<DiscountType> &&
-            widget.value == DiscountType.student,
+            widget.value == DiscountType.discounted,
       );
 
-      expect(studentRadio, findsOneWidget);
-      await tester.tap(studentRadio);
+      expect(discountedRadio, findsOneWidget);
+      await tester.tap(discountedRadio);
       await tester.pumpAndSettle();
 
-      expect(mockSettingsService.discountType, DiscountType.student);
-    });
-
-    testWidgets('HAPPY PATH: Selecting PWD updates settings', (
-      WidgetTester tester,
-    ) async {
-      mockFareRepository.formulasToReturn = [];
-
-      await tester.pumpWidget(createSettingsScreen());
-      await tester.pump();
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      final pwdRadio = find.byWidgetPredicate(
-        (widget) =>
-            widget is RadioListTile<DiscountType> &&
-            widget.value == DiscountType.pwd,
-      );
-
-      expect(pwdRadio, findsOneWidget);
-      await tester.tap(pwdRadio);
-      await tester.pumpAndSettle();
-
-      expect(mockSettingsService.discountType, DiscountType.pwd);
+      expect(mockSettingsService.discountType, DiscountType.discounted);
     });
   });
 
@@ -460,8 +399,8 @@ void main() {
     // These are structural tests to verify the integration points exist
 
     test('INTEGRATION: Discount + Filtering work together', () async {
-      // Setup: Student discount + Taxi hidden
-      mockSettingsService.discountType = DiscountType.student;
+      // Setup: Discounted passenger type + Taxi hidden
+      mockSettingsService.discountType = DiscountType.discounted;
       await mockSettingsService.toggleTransportMode('Taxi::Regular', true);
 
       mockFareRepository.formulasToReturn = [
