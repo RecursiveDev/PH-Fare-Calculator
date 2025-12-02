@@ -3,15 +3,21 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 class MapSelectionWidget extends StatefulWidget {
-  final Function(LatLng) onOriginSelected;
-  final Function(LatLng) onDestinationSelected;
-  final VoidCallback onSelectionCleared;
+  final LatLng? origin;
+  final LatLng? destination;
+  final List<LatLng> routePoints;
+  final Function(LatLng)? onOriginSelected;
+  final Function(LatLng)? onDestinationSelected;
+  final VoidCallback? onSelectionCleared;
 
   const MapSelectionWidget({
     super.key,
-    required this.onOriginSelected,
-    required this.onDestinationSelected,
-    required this.onSelectionCleared,
+    this.origin,
+    this.destination,
+    this.routePoints = const [],
+    this.onOriginSelected,
+    this.onDestinationSelected,
+    this.onSelectionCleared,
   });
 
   @override
@@ -19,22 +25,61 @@ class MapSelectionWidget extends StatefulWidget {
 }
 
 class _MapSelectionWidgetState extends State<MapSelectionWidget> {
+  late final MapController _mapController;
   LatLng? _origin;
   LatLng? _destination;
 
-  // Using a key or controller isn't strictly necessary for the requirements,
-  // but good for future extensibility. We'll stick to the requirements.
+  @override
+  void initState() {
+    super.initState();
+    _mapController = MapController();
+    _origin = widget.origin;
+    _destination = widget.destination;
+  }
+
+  @override
+  void didUpdateWidget(MapSelectionWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // Update local state when widget properties change
+    if (widget.origin != oldWidget.origin) {
+      _origin = widget.origin;
+      if (_origin != null) {
+        _moveCameraToPoint(_origin!);
+      }
+    }
+    
+    if (widget.destination != oldWidget.destination) {
+      _destination = widget.destination;
+      if (_destination != null && _origin != null) {
+        _fitBounds(_origin!, _destination!);
+      }
+    }
+  }
+
+  void _moveCameraToPoint(LatLng point) {
+    _mapController.move(point, 13.0);
+  }
+
+  void _fitBounds(LatLng origin, LatLng destination) {
+    final bounds = LatLngBounds(origin, destination);
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: const EdgeInsets.all(50),
+      ),
+    );
+  }
 
   void _handleTap(TapPosition tapPosition, LatLng point) {
     setState(() {
       if (_origin == null) {
         _origin = point;
-        widget.onOriginSelected(point);
+        widget.onOriginSelected?.call(point);
       } else if (_destination == null) {
         _destination = point;
-        widget.onDestinationSelected(point);
+        widget.onDestinationSelected?.call(point);
       }
-      // If both are set, ignore subsequent taps until cleared
     });
   }
 
@@ -43,13 +88,14 @@ class _MapSelectionWidgetState extends State<MapSelectionWidget> {
       _origin = null;
       _destination = null;
     });
-    widget.onSelectionCleared();
+    widget.onSelectionCleared?.call();
   }
 
   @override
   Widget build(BuildContext context) {
     final markers = <Marker>[];
 
+    // Add origin marker
     if (_origin != null) {
       markers.add(
         Marker(
@@ -61,6 +107,7 @@ class _MapSelectionWidgetState extends State<MapSelectionWidget> {
       );
     }
 
+    // Add destination marker
     if (_destination != null) {
       markers.add(
         Marker(
@@ -75,9 +122,10 @@ class _MapSelectionWidgetState extends State<MapSelectionWidget> {
     return Stack(
       children: [
         FlutterMap(
+          mapController: _mapController,
           options: MapOptions(
-            initialCenter: const LatLng(12.8797, 121.7740),
-            initialZoom: 6.0,
+            initialCenter: const LatLng(14.5995, 120.9842), // Manila coordinates
+            initialZoom: 11.0,
             onTap: _handleTap,
             interactionOptions: const InteractionOptions(
               flags: InteractiveFlag.all,
@@ -88,18 +136,30 @@ class _MapSelectionWidgetState extends State<MapSelectionWidget> {
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.example.ph_fare_estimator',
             ),
+            // Add polyline layer for route visualization
+            if (widget.routePoints.isNotEmpty)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: widget.routePoints,
+                    strokeWidth: 4.0,
+                    color: Colors.blue,
+                  ),
+                ],
+              ),
             MarkerLayer(markers: markers),
           ],
         ),
-        Positioned(
-          bottom: 16,
-          right: 16,
-          child: FloatingActionButton(
-            onPressed: _clearSelection,
-            tooltip: 'Clear Selection',
-            child: const Icon(Icons.refresh),
+        if (widget.onSelectionCleared != null)
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: _clearSelection,
+              tooltip: 'Clear Selection',
+              child: const Icon(Icons.refresh),
+            ),
           ),
-        ),
       ],
     );
   }

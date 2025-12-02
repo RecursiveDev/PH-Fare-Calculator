@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../core/di/injection.dart';
 import '../../core/errors/failures.dart';
@@ -11,10 +12,11 @@ import '../../models/fare_result.dart';
 import '../../models/location.dart';
 import '../../models/saved_route.dart';
 import '../../repositories/fare_repository.dart';
-import '../../services/fare_comparison_service.dart';
 import '../../services/geocoding/geocoding_service.dart';
+import '../../services/routing/routing_service.dart';
 import '../../services/settings_service.dart';
 import '../widgets/fare_result_card.dart';
+import '../widgets/map_selection_widget.dart';
 import 'offline_menu_screen.dart';
 import 'settings_screen.dart';
 
@@ -34,20 +36,35 @@ class _MainScreenState extends State<MainScreen> {
   // Engine and Data state
   final HybridEngine _hybridEngine = getIt<HybridEngine>();
   final FareRepository _fareRepository = getIt<FareRepository>();
-  final FareComparisonService _fareComparisonService =
-      getIt<FareComparisonService>();
-  // final RoutingService _routingService = getIt<RoutingService>();
+  final RoutingService _routingService = getIt<RoutingService>();
   List<FareFormula> _availableFormulas = [];
   bool _isLoading = true;
+
+  // Map state
+  LatLng? _originLatLng;
+  LatLng? _destinationLatLng;
+  List<LatLng> _routePoints = [];
+
+  // Debounce timers
+  Timer? _originDebounceTimer;
+  Timer? _destinationDebounceTimer;
 
   // UI state
   List<FareResult> _fareResults = [];
   String? _errorMessage;
+  bool _isLoadingLocation = false;
 
   @override
   void initState() {
     super.initState();
     _initializeData();
+  }
+
+  @override
+  void dispose() {
+    _originDebounceTimer?.cancel();
+    _destinationDebounceTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _initializeData() async {
@@ -107,22 +124,44 @@ class _MainScreenState extends State<MainScreen> {
           children: <Widget>[
             _buildLocationAutocomplete(
               label: AppLocalizations.of(context)!.originLabel,
+              isOriginField: true,
               onSelected: (Location location) {
                 setState(() {
                   _originLocation = location;
+                  _originLatLng = LatLng(location.latitude, location.longitude);
                   _resetResult();
                 });
+                // Trigger route calculation if both locations are selected
+                if (_destinationLocation != null) {
+                  _calculateRoute();
+                }
               },
             ),
             const SizedBox(height: 16.0),
             _buildLocationAutocomplete(
               label: AppLocalizations.of(context)!.destinationLabel,
+              isOriginField: false,
               onSelected: (Location location) {
                 setState(() {
                   _destinationLocation = location;
+                  _destinationLatLng = LatLng(location.latitude, location.longitude);
                   _resetResult();
                 });
+                // Trigger route calculation if both locations are selected
+                if (_originLocation != null) {
+                  _calculateRoute();
+                }
               },
+            ),
+            const SizedBox(height: 16.0),
+            // Map Widget
+            SizedBox(
+              height: 300,
+              child: MapSelectionWidget(
+                origin: _originLatLng,
+                destination: _destinationLatLng,
+                routePoints: _routePoints,
+              ),
             ),
             const SizedBox(height: 24.0),
             Semantics(
@@ -188,8 +227,11 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildLocationAutocomplete({
     required String label,
+    required bool isOriginField,
     required ValueChanged<Location> onSelected,
   }) {
+    final isOrigin = isOriginField;
+    
     return LayoutBuilder(
       builder: (context, constraints) {
         return Autocomplete<Location>(
@@ -198,9 +240,34 @@ class _MainScreenState extends State<MainScreen> {
             if (textEditingValue.text.trim().isEmpty) {
               return const Iterable<Location>.empty();
             }
-            // Simple debounce could be added here if needed,
-            // but Autocomplete handles async futures well.
-            return await _geocodingService.getLocations(textEditingValue.text);
+            
+            // Debounce logic: cancel previous timer and create new one
+            final debounceTimer = isOrigin ? _originDebounceTimer : _destinationDebounceTimer;
+            debounceTimer?.cancel();
+            
+            // Create a completer to return results after debounce
+            final completer = Completer<List<Location>>();
+            
+            final newTimer = Timer(const Duration(milliseconds: 800), () async {
+              try {
+                final locations = await _geocodingService.getLocations(textEditingValue.text);
+                if (!completer.isCompleted) {
+                  completer.complete(locations);
+                }
+              } catch (e) {
+                if (!completer.isCompleted) {
+                  completer.complete([]);
+                }
+              }
+            });
+            
+            if (isOrigin) {
+              _originDebounceTimer = newTimer;
+            } else {
+              _destinationDebounceTimer = newTimer;
+            }
+            
+            return completer.future;
           },
           onSelected: onSelected,
           fieldViewBuilder:
@@ -219,7 +286,31 @@ class _MainScreenState extends State<MainScreen> {
                     decoration: InputDecoration(
                       labelText: label,
                       border: const OutlineInputBorder(),
-                      suffixIcon: const Icon(Icons.search),
+                      suffixIcon: isOriginField
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_isLoadingLocation)
+                                  const Padding(
+                                    padding: EdgeInsets.all(12.0),
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  IconButton(
+                                    icon: const Icon(Icons.my_location),
+                                    tooltip: 'Use my current location',
+                                    onPressed: () => _useCurrentLocation(textEditingController, onSelected),
+                                  ),
+                                const Icon(Icons.search),
+                              ],
+                            )
+                          : const Icon(Icons.search),
                     ),
                   ),
                 );
@@ -255,11 +346,35 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _resetResult() {
-    if (_fareResults.isNotEmpty || _errorMessage != null) {
+    if (_fareResults.isNotEmpty || _errorMessage != null || _routePoints.isNotEmpty) {
       setState(() {
         _fareResults = [];
         _errorMessage = null;
+        _routePoints = [];
       });
+    }
+  }
+
+  Future<void> _calculateRoute() async {
+    if (_originLocation == null || _destinationLocation == null) {
+      return;
+    }
+
+    try {
+      final routeResult = await _routingService.getRoute(
+        _originLocation!.latitude,
+        _originLocation!.longitude,
+        _destinationLocation!.latitude,
+        _destinationLocation!.longitude,
+      );
+
+      setState(() {
+        _routePoints = routeResult.geometry;
+      });
+    } catch (e) {
+      debugPrint('Error calculating route: $e');
+      // Don't show error for route visualization failure
+      // Just leave route empty - user can still calculate fare
     }
   }
 
@@ -361,6 +476,50 @@ class _MainScreenState extends State<MainScreen> {
           SnackBar(
             content: Text(msg),
             backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _useCurrentLocation(
+    TextEditingController controller,
+    ValueChanged<Location> onSelected,
+  ) async {
+    setState(() {
+      _isLoadingLocation = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final location = await _geocodingService.getCurrentLocationAddress();
+      
+      if (mounted) {
+        controller.text = location.name;
+        onSelected(location);
+        
+        setState(() {
+          _isLoadingLocation = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        String errorMsg = 'Failed to get current location.';
+        
+        if (e is Failure) {
+          errorMsg = e.message;
+        }
+        
+        setState(() {
+          _isLoadingLocation = false;
+          _errorMessage = errorMsg;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

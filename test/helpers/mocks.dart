@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:ph_fare_estimator/src/models/transport_mode.dart';
 import 'package:ph_fare_estimator/src/models/location.dart';
+import 'package:ph_fare_estimator/src/models/route_result.dart';
 import 'package:ph_fare_estimator/src/services/geocoding/geocoding_service.dart';
 import 'package:ph_fare_estimator/src/services/routing/routing_service.dart';
 import 'package:ph_fare_estimator/src/services/settings_service.dart';
@@ -16,14 +17,14 @@ class MockRoutingService implements RoutingService {
   double? distanceToReturn;
 
   @override
-  Future<double> getDistance(
+  Future<RouteResult> getRoute(
     double originLat,
     double originLng,
     double destLat,
     double destLng,
   ) async {
-    if (distanceToReturn != null) return distanceToReturn!;
-    return 5000.0; // Default 5km
+    final distance = distanceToReturn ?? 5000.0; // Default 5km
+    return RouteResult.withoutGeometry(distance: distance);
   }
 }
 
@@ -68,10 +69,21 @@ class MockSettingsService implements SettingsService {
 
 class MockGeocodingService implements GeocodingService {
   List<Location> locationsToReturn = [];
+  Location? currentLocationToReturn;
 
   @override
   Future<List<Location>> getLocations(String query) async {
     return locationsToReturn;
+  }
+
+  @override
+  Future<Location> getCurrentLocationAddress() async {
+    return currentLocationToReturn ??
+        Location(
+          name: 'Mock Current Location',
+          latitude: 14.5995,
+          longitude: 120.9842,
+        );
   }
 }
 // ... existing code ...

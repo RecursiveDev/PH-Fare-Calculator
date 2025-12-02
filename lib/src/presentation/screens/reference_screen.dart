@@ -1,24 +1,311 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../../src/models/fare_formula.dart';
+import '../../../src/models/static_fare.dart';
 
-class ReferenceScreen extends StatelessWidget {
+class ReferenceScreen extends StatefulWidget {
   const ReferenceScreen({super.key});
+
+  @override
+  State<ReferenceScreen> createState() => _ReferenceScreenState();
+}
+
+class _ReferenceScreenState extends State<ReferenceScreen> {
+  List<FareFormula> _roadFormulas = [];
+  Map<String, List<StaticFare>> _trainMatrix = {};
+  List<StaticFare> _ferryRoutes = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReferenceData();
+  }
+
+  Future<void> _loadReferenceData() async {
+    try {
+      // Load road formulas
+      final formulasJson = await rootBundle.loadString('assets/data/fare_formulas.json');
+      final formulasData = json.decode(formulasJson);
+      _roadFormulas = (formulasData['road'] as List)
+          .map((json) => FareFormula.fromJson(json))
+          .toList();
+
+      // Load train matrix
+      final trainJson = await rootBundle.loadString('assets/data/train_matrix.json');
+      final trainData = json.decode(trainJson) as Map<String, dynamic>;
+      _trainMatrix = trainData.map((key, value) {
+        final routes = (value as List)
+            .map((json) => StaticFare.fromJson(json))
+            .toList();
+        return MapEntry(key, routes);
+      });
+
+      // Load ferry routes
+      final ferryJson = await rootBundle.loadString('assets/data/ferry_matrix.json');
+      final ferryData = json.decode(ferryJson);
+      _ferryRoutes = (ferryData['routes'] as List)
+          .map((json) => StaticFare.fromJson(json))
+          .toList();
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load reference data: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Static Cheat Sheets'),
+        title: const Text('Fare Reference Guide'),
+        elevation: 2,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: const [
-          _SectionHeader(title: 'Taxi Meter Guide'),
-          _TaxiGuide(),
-          SizedBox(height: 24.0),
-          _SectionHeader(title: 'LRT Station Matrix'),
-          _LrtMatrix(),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(16.0),
+                  children: [
+                    _buildRoadTransportSection(),
+                    const SizedBox(height: 24.0),
+                    _buildTrainSection(),
+                    const SizedBox(height: 24.0),
+                    _buildFerrySection(),
+                  ],
+                ),
+    );
+  }
+
+  Widget _buildRoadTransportSection() {
+    // Group formulas by mode
+    final groupedFormulas = <String, List<FareFormula>>{};
+    for (final formula in _roadFormulas) {
+      groupedFormulas.putIfAbsent(formula.mode, () => []).add(formula);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(title: 'Road Transport Fares'),
+        ...groupedFormulas.entries.map((entry) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.key,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Divider(),
+                    ...entry.value.asMap().entries.map((formulaEntry) {
+                      final formula = formulaEntry.value;
+                      final isLast = formulaEntry.key == entry.value.length - 1;
+                      return Column(
+                        children: [
+                          _FareFormulaRow(formula: formula),
+                          if (!isLast) const Divider(height: 16),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildTrainSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(title: 'Train/Rail Fares'),
+        ..._trainMatrix.entries.map((entry) {
+          final lineName = entry.key;
+          final routes = entry.value;
+          
+          // Get unique origins for summary
+          final uniqueOrigins = routes.map((r) => r.origin).toSet().toList();
+          
+          // Find max fare
+          final maxFare = routes.map((r) => r.price).reduce((a, b) => a > b ? a : b);
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Card(
+              elevation: 2,
+              child: ExpansionTile(
+                title: Text(
+                  lineName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  'Max Fare: ₱${maxFare.toStringAsFixed(2)} • ${uniqueOrigins.length} stations',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sample Routes:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...routes.take(10).map((route) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${route.origin} → ${route.destination}',
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                                Text(
+                                  '₱${route.price.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                        if (routes.length > 10)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              '... and ${routes.length - 10} more routes',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontStyle: FontStyle.italic,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildFerrySection() {
+    // Group ferry routes by origin
+    final groupedFerries = <String, List<StaticFare>>{};
+    for (final route in _ferryRoutes) {
+      groupedFerries.putIfAbsent(route.origin, () => []).add(route);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(title: 'Ferry Routes'),
+        ...groupedFerries.entries.map((entry) {
+          final origin = entry.key;
+          final routes = entry.value;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Card(
+              elevation: 2,
+              child: ExpansionTile(
+                title: Text(
+                  'From $origin',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  '${routes.length} destination(s)',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: routes.map((route) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  route.destination,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                              if (route.operator != null)
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    route.operator!,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ),
+                              Text(
+                                '₱${route.price.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 }
@@ -31,139 +318,120 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 24,
+            decoration: BoxDecoration(
               color: Theme.of(context).primaryColor,
+              borderRadius: BorderRadius.circular(2),
             ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
+                ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _TaxiGuide extends StatelessWidget {
-  const _TaxiGuide();
+class _FareFormulaRow extends StatelessWidget {
+  final FareFormula formula;
+
+  const _FareFormulaRow({required this.formula});
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
-      elevation: 2,
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _FareRow(
-              mode: 'White Taxi (Regular)',
-              base: '₱45.00',
-              rate: '₱13.50/km',
-              note: 'Standard city taxi.',
-            ),
-            Divider(),
-            _FareRow(
-              mode: 'Yellow Taxi (Airport)',
-              base: '₱75.00',
-              rate: '₱20.00/km',
-              note: 'Airport usage only. Higher rates.',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+    final hasBaseFare = formula.baseFare > 0;
+    final hasPerKm = formula.perKmRate > 0;
 
-class _FareRow extends StatelessWidget {
-  final String mode;
-  final String base;
-  final String rate;
-  final String note;
-
-  const _FareRow({
-    required this.mode,
-    required this.base,
-    required this.rate,
-    required this.note,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(mode, style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Text('Flagdown: $base'),
-            const SizedBox(width: 16),
-            Text('Rate: $rate'),
-          ],
+        Text(
+          formula.subType,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
         ),
-        const SizedBox(height: 4),
-        Text(note, style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
+        const SizedBox(height: 6),
+        if (hasBaseFare || hasPerKm)
+          Wrap(
+            spacing: 16,
+            runSpacing: 4,
+            children: [
+              if (hasBaseFare)
+                _FareDetail(
+                  label: 'Base',
+                  value: '₱${formula.baseFare.toStringAsFixed(2)}',
+                ),
+              if (hasPerKm)
+                _FareDetail(
+                  label: 'Per km',
+                  value: '₱${formula.perKmRate.toStringAsFixed(2)}',
+                ),
+              if (formula.minimumFare != null)
+                _FareDetail(
+                  label: 'Min',
+                  value: '₱${formula.minimumFare!.toStringAsFixed(2)}',
+                ),
+            ],
+          ),
+        if (formula.notes != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            formula.notes!,
+            style: TextStyle(
+              fontStyle: FontStyle.italic,
+              fontSize: 12,
+              color: Colors.grey[700],
+            ),
+          ),
+        ],
       ],
     );
   }
 }
 
-class _LrtMatrix extends StatelessWidget {
-  const _LrtMatrix();
+class _FareDetail extends StatelessWidget {
+  final String label;
+  final String value;
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Maximum Fares (End-to-End)',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            _MatrixRow(line: 'MRT-3', route: 'North Ave - Taft', price: '₱28.00'),
-            _MatrixRow(line: 'LRT-1', route: 'Baclaran - FPJ (Roosevelt)', price: '₱35.00'),
-            _MatrixRow(line: 'LRT-2', route: 'Antipolo - Recto', price: '₱25.00'),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MatrixRow extends StatelessWidget {
-  final String line;
-  final String route;
-  final String price;
-
-  const _MatrixRow({
-    required this.line,
-    required this.route,
-    required this.price,
+  const _FareDetail({
+    required this.label,
+    required this.value,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(line, style: const TextStyle(fontWeight: FontWeight.bold)),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(route, overflow: TextOverflow.ellipsis),
-            ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey[600],
           ),
-          Text(price, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-        ],
-      ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.green,
+          ),
+        ),
+      ],
     );
   }
 }

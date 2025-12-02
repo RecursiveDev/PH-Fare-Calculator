@@ -111,8 +111,8 @@ void main() {
     // 1. Search and select Origin
     await tester.enterText(find.widgetWithText(TextField, 'Origin'), 'Luneta');
     await tester.pump(
-      const Duration(milliseconds: 500),
-    ); // wait for autocomplete debounce/async
+      const Duration(milliseconds: 900),
+    ); // wait for autocomplete debounce (800ms) + buffer
     await tester.pumpAndSettle();
     await tester.tap(find.text('Luneta').last); // Select from options
     await tester.pumpAndSettle(); // Close options
@@ -123,7 +123,7 @@ void main() {
       find.widgetWithText(TextField, 'Destination'),
       'MOA',
     );
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 900)); // wait for autocomplete debounce (800ms) + buffer
     await tester.pumpAndSettle();
     await tester.tap(find.text('MOA').last);
     await tester.pumpAndSettle();

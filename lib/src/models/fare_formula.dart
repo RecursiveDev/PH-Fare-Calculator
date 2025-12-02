@@ -40,7 +40,7 @@ class FareFormula {
       mode: json['mode'] ?? 'Unknown',
       subType: json['sub_type'],
       baseFare: (json['base_fare'] as num).toDouble(),
-      perKmRate: (json['per_km_rate'] as num).toDouble(),
+      perKmRate: (json['per_km'] as num).toDouble(),
       provincialMultiplier: json['provincial_multiplier'] != null
           ? (json['provincial_multiplier'] as num).toDouble()
           : null,

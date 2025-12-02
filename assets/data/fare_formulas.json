@@ -15,6 +15,13 @@
       "notes": "Aircon standard. Higher base."
     },
     {
+      "mode": "Jeepney",
+      "sub_type": "E-Jeepney (Electric)",
+      "base_fare": 15.00,
+      "per_km": 1.90,
+      "notes": "Electric jeepney. Environmentally friendly with aircon."
+    },
+    {
       "mode": "Bus",
       "sub_type": "Traditional",
       "base_fare": 13.00,
@@ -26,7 +33,29 @@
       "sub_type": "Aircon",
       "base_fare": 15.00,
       "per_km": 2.50,
-      "notes": "User Input: Aircon toggle required."
+      "notes": "City buses with aircon. User Input: Aircon toggle required."
+    },
+    {
+      "mode": "Bus",
+      "sub_type": "Premium/Deluxe",
+      "base_fare": 25.00,
+      "per_km": 3.00,
+      "notes": "Premium buses with WiFi, charging ports, and reclining seats."
+    },
+    {
+      "mode": "Bus",
+      "sub_type": "P2P (Point-to-Point)",
+      "base_fare": 50.00,
+      "per_km": 2.00,
+      "notes": "Fixed route express service. No standing passengers."
+    },
+    {
+      "mode": "Bus",
+      "sub_type": "Provincial (Long Distance)",
+      "base_fare": 20.00,
+      "per_km": 2.80,
+      "minimum_fare": 25.00,
+      "notes": "Inter-provincial routes. Minimum fare applies for short trips."
     },
     {
       "mode": "Taxi",
@@ -43,6 +72,13 @@
       "notes": "Higher flagdown & rate. Default if Origin = Airport."
     },
     {
+      "mode": "Taxi",
+      "sub_type": "Premium (GrabCar/Black)",
+      "base_fare": 55.00,
+      "per_km": 15.00,
+      "notes": "App-based premium taxi service. Surge pricing may apply."
+    },
+    {
       "mode": "Van",
       "sub_type": "UV Express",
       "base_fare": 20.00,
@@ -50,11 +86,100 @@
       "notes": "Point-to-Point nature implies higher per-km rate."
     },
     {
+      "mode": "Van",
+      "sub_type": "FX/AUV",
+      "base_fare": 25.00,
+      "per_km": 3.50,
+      "notes": "Air-conditioned utility vehicle. Common in Metro Manila."
+    },
+    {
       "mode": "Tricycle",
       "sub_type": "Local/Special",
       "base_fare": 0.00,
       "per_km": 0.00,
-      "notes": "Fares are negotiated (Pakyaw). Expect ₱20-50 per km."
+      "notes": "Fares are negotiated (Pakyaw). Expect ₱20-50 per km. Highly variable by LGU."
+    },
+    {
+      "mode": "Tricycle",
+      "sub_type": "Metered",
+      "base_fare": 15.00,
+      "per_km": 5.00,
+      "notes": "Some areas use metered tricycles. Rates vary by municipality."
+    },
+    {
+      "mode": "Motorcycle",
+      "sub_type": "Habal-Habal",
+      "base_fare": 20.00,
+      "per_km": 8.00,
+      "notes": "Motorcycle taxi. Common in provinces and rural areas."
+    },
+    {
+      "mode": "Motorcycle",
+      "sub_type": "App-based (Angkas/JoyRide)",
+      "base_fare": 25.00,
+      "per_km": 10.00,
+      "notes": "Licensed motorcycle taxi service via app. Metro Manila pilot."
+    },
+    {
+      "mode": "Train",
+      "sub_type": "MRT-3",
+      "base_fare": 13.00,
+      "per_km": 1.00,
+      "minimum_fare": 13.00,
+      "notes": "Distance-based. Max ₱28 (North Ave to Taft). Beep card discount available."
+    },
+    {
+      "mode": "Train",
+      "sub_type": "LRT-1",
+      "base_fare": 15.00,
+      "per_km": 1.00,
+      "minimum_fare": 15.00,
+      "notes": "Distance-based. Max ₱35 (Baclaran to Roosevelt). Beep card discount available."
+    },
+    {
+      "mode": "Train",
+      "sub_type": "LRT-2",
+      "base_fare": 15.00,
+      "per_km": 1.00,
+      "minimum_fare": 15.00,
+      "notes": "Distance-based. Max ₱25 (Antipolo to Recto). Beep card discount available."
+    },
+    {
+      "mode": "Train",
+      "sub_type": "PNR (Metro Manila)",
+      "base_fare": 20.00,
+      "per_km": 1.50,
+      "minimum_fare": 20.00,
+      "notes": "Philippine National Railways. Tutuban to Alabang route."
+    },
+    {
+      "mode": "Train",
+      "sub_type": "PNR (Bicol)",
+      "base_fare": 50.00,
+      "per_km": 2.00,
+      "minimum_fare": 50.00,
+      "notes": "Long-distance PNR service. Naga-Legazpi route."
+    },
+    {
+      "mode": "EDSA Carousel",
+      "sub_type": "BRT (Bus Rapid Transit)",
+      "base_fare": 0.00,
+      "per_km": 0.00,
+      "notes": "Free service along EDSA. Government-subsidized."
+    },
+    {
+      "mode": "Pedicab",
+      "sub_type": "Bicycle/Padyak",
+      "base_fare": 10.00,
+      "per_km": 5.00,
+      "notes": "Non-motorized. Rates negotiable. Common in residential areas."
+    },
+    {
+      "mode": "Kuliglig",
+      "sub_type": "Motorized Sidecar",
+      "base_fare": 15.00,
+      "per_km": 6.00,
+      "notes": "Common in rural/agricultural areas. Improvised transport."
     }
   ]
 }

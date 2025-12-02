@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:injectable/injectable.dart';
 
+import '../../models/route_result.dart';
 import 'routing_service.dart';
 
 @LazySingleton(as: RoutingService)
@@ -8,8 +9,9 @@ class HaversineRoutingService implements RoutingService {
   static const double _earthRadius = 6371000; // Radius in meters
 
   /// Calculates the straight-line distance (Haversine formula) in meters.
+  /// Returns a RouteResult with distance but no geometry (empty list).
   @override
-  Future<double> getDistance(
+  Future<RouteResult> getRoute(
     double originLat,
     double originLng,
     double destLat,
@@ -26,7 +28,10 @@ class HaversineRoutingService implements RoutingService {
 
     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
-    return _earthRadius * c;
+    final distance = _earthRadius * c;
+
+    // Haversine doesn't provide route geometry, return empty list
+    return RouteResult.withoutGeometry(distance: distance);
   }
 
   double _toRadians(double degree) {

@@ -143,16 +143,16 @@ class HybridEngine {
     bool isProvincial = false,
   }) async {
     try {
-      // 1. Get road distance in meters from OSRM
-      final distanceInMeters = await _routingService.getDistance(
+      // 1. Get route result from routing service
+      final routeResult = await _routingService.getRoute(
         originLat,
         originLng,
         destLat,
         destLng,
       );
 
-      // 2. Convert to kilometers
-      final distanceInKm = distanceInMeters / 1000.0;
+      // 2. Extract distance in meters and convert to kilometers
+      final distanceInKm = routeResult.distance / 1000.0;
 
       // 3. Apply Variance (1.15) as per PRD
       // Formula: (Road Distance x 1.15 Variance) * Rate + Base Fare
