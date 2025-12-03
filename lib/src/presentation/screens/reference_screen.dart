@@ -258,11 +258,17 @@ class _ReferenceScreenState extends State<ReferenceScreen> {
   }
 
   Widget _buildTrainSection() {
+    // Group train routes by line name for card-based display
+    final groupedTrains = <String, List<StaticFare>>{};
+    for (final entry in _trainMatrix.entries) {
+      groupedTrains[entry.key] = entry.value;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(title: 'Train/Rail Fares'),
-        ..._trainMatrix.entries.map((entry) {
+        ...groupedTrains.entries.map((entry) {
           final lineName = entry.key;
           final routes = entry.value;
           
@@ -276,68 +282,81 @@ class _ReferenceScreenState extends State<ReferenceScreen> {
             padding: const EdgeInsets.only(bottom: 16.0),
             child: Card(
               elevation: 2,
-              child: ExpansionTile(
-                title: Text(
-                  lineName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  'Max Fare: ₱${maxFare.toStringAsFixed(2)} • ${uniqueOrigins.length} stations',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      lineName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
                       children: [
-                        Text(
-                          'Sample Routes:',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[700],
+                        Expanded(
+                          child: _FareDetail(
+                            label: 'Max Fare',
+                            value: '₱${maxFare.toStringAsFixed(2)}',
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        ...routes.take(10).map((route) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4.0),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    '${route.origin} → ${route.destination}',
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                                Text(
-                                  '₱${route.price.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-                        if (routes.length > 10)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              '... and ${routes.length - 10} more routes',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontStyle: FontStyle.italic,
-                                color: Colors.grey[600],
-                              ),
-                            ),
+                        Expanded(
+                          child: _FareDetail(
+                            label: 'Stations',
+                            value: '${uniqueOrigins.length}',
                           ),
+                        ),
                       ],
                     ),
-                  ),
-                ],
+                    const Divider(height: 24),
+                    Text(
+                      'Sample Routes:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...routes.take(10).map((route) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${route.origin} → ${route.destination}',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
+                            Text(
+                              '₱${route.price.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    if (routes.length > 10)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          '... and ${routes.length - 10} more routes',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           );
@@ -467,51 +486,87 @@ class _FareFormulaRow extends StatelessWidget {
     final hasBaseFare = formula.baseFare > 0;
     final hasPerKm = formula.perKmRate > 0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          formula.subType,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-          ),
-        ),
-        const SizedBox(height: 6),
-        if (hasBaseFare || hasPerKm)
-          Wrap(
-            spacing: 16,
-            runSpacing: 4,
-            children: [
-              if (hasBaseFare)
-                _FareDetail(
-                  label: 'Base',
-                  value: '₱${formula.baseFare.toStringAsFixed(2)}',
-                ),
-              if (hasPerKm)
-                _FareDetail(
-                  label: 'Per km',
-                  value: '₱${formula.perKmRate.toStringAsFixed(2)}',
-                ),
-              if (formula.minimumFare != null)
-                _FareDetail(
-                  label: 'Min',
-                  value: '₱${formula.minimumFare!.toStringAsFixed(2)}',
-                ),
-            ],
-          ),
-        if (formula.notes != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            formula.notes!,
-            style: TextStyle(
-              fontStyle: FontStyle.italic,
-              fontSize: 12,
-              color: Colors.grey[700],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Use column layout for narrow screens, wrap for wider screens
+        final useColumnLayout = constraints.maxWidth < 300;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              formula.subType,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
             ),
-          ),
-        ],
-      ],
+            const SizedBox(height: 6),
+            if (hasBaseFare || hasPerKm)
+              useColumnLayout
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (hasBaseFare)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4.0),
+                            child: _FareDetail(
+                              label: 'Base',
+                              value: '₱${formula.baseFare.toStringAsFixed(2)}',
+                            ),
+                          ),
+                        if (hasPerKm)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4.0),
+                            child: _FareDetail(
+                              label: 'Per km',
+                              value: '₱${formula.perKmRate.toStringAsFixed(2)}',
+                            ),
+                          ),
+                        if (formula.minimumFare != null)
+                          _FareDetail(
+                            label: 'Min',
+                            value: '₱${formula.minimumFare!.toStringAsFixed(2)}',
+                          ),
+                      ],
+                    )
+                  : Wrap(
+                      spacing: 16,
+                      runSpacing: 4,
+                      children: [
+                        if (hasBaseFare)
+                          _FareDetail(
+                            label: 'Base',
+                            value: '₱${formula.baseFare.toStringAsFixed(2)}',
+                          ),
+                        if (hasPerKm)
+                          _FareDetail(
+                            label: 'Per km',
+                            value: '₱${formula.perKmRate.toStringAsFixed(2)}',
+                          ),
+                        if (formula.minimumFare != null)
+                          _FareDetail(
+                            label: 'Min',
+                            value: '₱${formula.minimumFare!.toStringAsFixed(2)}',
+                          ),
+                      ],
+                    ),
+            if (formula.notes != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                formula.notes!,
+                style: TextStyle(
+                  fontStyle: FontStyle.italic,
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

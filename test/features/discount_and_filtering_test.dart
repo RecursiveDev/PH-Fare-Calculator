@@ -255,7 +255,10 @@ void main() {
 
       // Check that passenger type section exists
       expect(find.text('Passenger Type'), findsOneWidget);
-      // Note: Radio button text appears as subtitle, not main text
+      // Check for the discount type display names
+      expect(find.text('Regular'), findsOneWidget);
+      expect(find.text('Discounted (Student/Senior/PWD)'), findsOneWidget);
+      // Check for subtitles
       expect(find.text('No discount'), findsOneWidget);
       expect(find.text('20% discount (RA 11314, RA 9994, RA 7277)'), findsOneWidget);
     });
@@ -315,9 +318,12 @@ void main() {
       await tester.pumpWidget(createSettingsScreen());
       await tester.pumpAndSettle();
 
+      // Phase 5 refactored UI - now uses categorized cards
       expect(find.text('Transport Modes'), findsOneWidget);
-      expect(find.text('Jeepney'), findsOneWidget);
-      expect(find.text('Taxi'), findsOneWidget);
+      expect(find.text('Road'), findsOneWidget); // Category header
+      // Card content shows display names from TransportMode enum
+      expect(find.text('Jeepney'), findsAtLeastNWidgets(1));
+      expect(find.text('Taxi'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('HAPPY PATH: Toggling mode updates hidden state', (

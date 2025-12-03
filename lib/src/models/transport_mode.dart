@@ -7,6 +7,25 @@ enum TransportMode {
   tricycle,
   uvExpress;
 
+  /// Get the category for grouping transport modes
+  String get category {
+    switch (this) {
+      case TransportMode.jeepney:
+      case TransportMode.bus:
+      case TransportMode.taxi:
+      case TransportMode.tricycle:
+      case TransportMode.uvExpress:
+        return 'road';
+      case TransportMode.train:
+        return 'rail';
+      case TransportMode.ferry:
+        return 'water';
+    }
+  }
+
+  /// Get the default visibility state for this transport mode
+  bool get isVisible => true;
+
   String get displayName {
     switch (this) {
       case TransportMode.jeepney:

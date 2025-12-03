@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+
 import '../../core/di/injection.dart';
 import '../../l10n/app_localizations.dart';
-import '../../services/settings_service.dart';
 import '../../models/discount_type.dart';
 import '../../models/fare_formula.dart';
 import '../../models/transport_mode.dart';
 import '../../repositories/fare_repository.dart';
+import '../../services/settings_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   final SettingsService? settingsService;
@@ -24,7 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   TrafficFactor _trafficFactor = TrafficFactor.medium;
   DiscountType _discountType = DiscountType.standard;
   bool _isLoading = true;
-  
+
   Set<String> _hiddenTransportModes = {};
   Map<String, List<FareFormula>> _groupedFormulas = {};
 
@@ -43,7 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final discountType = await _settingsService.getUserDiscountType();
     final hiddenModes = await _settingsService.getHiddenTransportModes();
     final formulas = await _fareRepository.getAllFormulas();
-    
+
     // Group formulas by mode
     final grouped = <String, List<FareFormula>>{};
     for (final formula in formulas) {
@@ -52,7 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
       grouped[formula.mode]!.add(formula);
     }
-    
+
     if (mounted) {
       setState(() {
         _isProvincialModeEnabled = provincialMode;
@@ -69,16 +70,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.settingsTitle),
-      ),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settingsTitle)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
                 SwitchListTile(
-                  title: Text(AppLocalizations.of(context)!.provincialModeTitle),
-                  subtitle: Text(AppLocalizations.of(context)!.provincialModeSubtitle),
+                  title: Text(
+                    AppLocalizations.of(context)!.provincialModeTitle,
+                  ),
+                  subtitle: Text(
+                    AppLocalizations.of(context)!.provincialModeSubtitle,
+                  ),
                   value: _isProvincialModeEnabled,
                   onChanged: (bool value) async {
                     setState(() {
@@ -88,8 +91,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                 ),
                 SwitchListTile(
-                  title: Text(AppLocalizations.of(context)!.highContrastModeTitle),
-                  subtitle: Text(AppLocalizations.of(context)!.highContrastModeSubtitle),
+                  title: Text(
+                    AppLocalizations.of(context)!.highContrastModeTitle,
+                  ),
+                  subtitle: Text(
+                    AppLocalizations.of(context)!.highContrastModeSubtitle,
+                  ),
                   value: _isHighContrastEnabled,
                   onChanged: (bool value) async {
                     setState(() {
@@ -110,7 +117,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Text(
                     AppLocalizations.of(context)!.trafficFactorSubtitle,
                     style: const TextStyle(color: Colors.grey),
@@ -118,7 +128,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 RadioListTile<TrafficFactor>(
                   title: Text(AppLocalizations.of(context)!.trafficLow),
-                  subtitle: Text(AppLocalizations.of(context)!.trafficLowSubtitle),
+                  subtitle: Text(
+                    AppLocalizations.of(context)!.trafficLowSubtitle,
+                  ),
                   value: TrafficFactor.low,
                   groupValue: _trafficFactor,
                   onChanged: (TrafficFactor? value) async {
@@ -132,7 +144,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 RadioListTile<TrafficFactor>(
                   title: Text(AppLocalizations.of(context)!.trafficMedium),
-                  subtitle: Text(AppLocalizations.of(context)!.trafficMediumSubtitle),
+                  subtitle: Text(
+                    AppLocalizations.of(context)!.trafficMediumSubtitle,
+                  ),
                   value: TrafficFactor.medium,
                   groupValue: _trafficFactor,
                   onChanged: (TrafficFactor? value) async {
@@ -146,7 +160,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 RadioListTile<TrafficFactor>(
                   title: Text(AppLocalizations.of(context)!.trafficHigh),
-                  subtitle: Text(AppLocalizations.of(context)!.trafficHighSubtitle),
+                  subtitle: Text(
+                    AppLocalizations.of(context)!.trafficHighSubtitle,
+                  ),
                   value: TrafficFactor.high,
                   groupValue: _trafficFactor,
                   onChanged: (TrafficFactor? value) async {
@@ -170,7 +186,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Text(
                     'Select your passenger type to apply eligible discounts (20% off for Student, Senior, PWD)',
                     style: const TextStyle(color: Colors.grey),
@@ -192,7 +211,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 RadioListTile<DiscountType>(
                   title: Text(DiscountType.discounted.displayName),
-                  subtitle: const Text('20% discount (RA 11314, RA 9994, RA 7277)'),
+                  subtitle: const Text(
+                    '20% discount (RA 11314, RA 9994, RA 7277)',
+                  ),
                   value: DiscountType.discounted,
                   groupValue: _discountType,
                   onChanged: (DiscountType? value) async {
@@ -216,88 +237,204 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Text(
-                    'Learn about Philippine transport options and select which modes to include in calculations',
+                    'Select which transport modes to include in fare calculations',
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ),
-                ..._buildTransportModeDescriptions(),
-                const SizedBox(height: 16.0),
-                const Divider(),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 8.0),
-                  child: Text(
-                    'Available Transport Options',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                if (_groupedFormulas.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      'No transport modes available',
+                      style: TextStyle(color: Colors.grey),
                     ),
-                  ),
-                ),
-                ..._buildTransportModeToggles(),
+                  )
+                else
+                  ..._buildCategorizedTransportModes(),
               ],
             ),
     );
   }
 
-  List<Widget> _buildTransportModeDescriptions() {
+  List<Widget> _buildCategorizedTransportModes() {
     final widgets = <Widget>[];
-    
-    // Get unique transport modes from formulas
-    final uniqueModes = _groupedFormulas.keys.toSet();
-    
-    for (final modeStr in uniqueModes) {
+
+    // Group modes by category
+    final categorizedModes = <String, List<String>>{
+      'Road': [],
+      'Rail': [],
+      'Water': [],
+    };
+
+    for (final modeStr in _groupedFormulas.keys) {
       try {
         final mode = TransportMode.fromString(modeStr);
-        
-        widgets.add(
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-            elevation: 1,
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        _getIconForMode(mode),
-                        size: 20,
-                        color: Colors.blue[700],
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        mode.displayName,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    mode.description,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[700],
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+        final category = mode.category;
+
+        // Capitalize category for display
+        final categoryKey = category[0].toUpperCase() + category.substring(1);
+
+        if (categorizedModes.containsKey(categoryKey)) {
+          categorizedModes[categoryKey]!.add(modeStr);
+        }
       } catch (e) {
-        // Skip if mode string doesn't match enum
+        // Skip invalid modes
         continue;
       }
     }
-    
+
+    // Build UI for each category
+    for (final category in ['Road', 'Rail', 'Water']) {
+      final modesInCategory = categorizedModes[category] ?? [];
+      if (modesInCategory.isEmpty) continue;
+
+      // Category Header
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+          child: Row(
+            children: [
+              Icon(
+                _getIconForCategory(category),
+                size: 20,
+                color: Colors.blue[700],
+              ),
+              const SizedBox(width: 8),
+              Text(
+                category,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.blue[700],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      // Transport Mode Cards for this category
+      for (final modeStr in modesInCategory) {
+        try {
+          final mode = TransportMode.fromString(modeStr);
+          final formulas = _groupedFormulas[modeStr] ?? [];
+
+          widgets.add(_buildTransportModeCard(mode, formulas));
+        } catch (e) {
+          continue;
+        }
+      }
+    }
+
     return widgets;
+  }
+
+  Widget _buildTransportModeCard(
+    TransportMode mode,
+    List<FareFormula> formulas,
+  ) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Mode Header with Icon and Name
+            Row(
+              children: [
+                Icon(_getIconForMode(mode), size: 24, color: Colors.blue[700]),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    mode.displayName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Description
+            Text(
+              mode.description,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[700],
+                height: 1.4,
+              ),
+            ),
+
+            if (formulas.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 4),
+
+              // Subtype Toggles using SwitchListTile for test compatibility
+              ...formulas.map((formula) {
+                final modeSubTypeKey = '${formula.mode}::${formula.subType}';
+                final isHidden = _hiddenTransportModes.contains(modeSubTypeKey);
+
+                return SwitchListTile(
+                  title: Text('  ${formula.subType}'),
+                  subtitle: formula.notes != null && formula.notes!.isNotEmpty
+                      ? Text(
+                          '  ${formula.notes}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : null,
+                  value: !isHidden,
+                  onChanged: (bool value) async {
+                    final shouldHide = !value;
+                    await _settingsService.toggleTransportMode(
+                      modeSubTypeKey,
+                      shouldHide,
+                    );
+
+                    setState(() {
+                      if (shouldHide) {
+                        _hiddenTransportModes.add(modeSubTypeKey);
+                      } else {
+                        _hiddenTransportModes.remove(modeSubTypeKey);
+                      }
+                    });
+                  },
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                );
+              }),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getIconForCategory(String category) {
+    switch (category.toLowerCase()) {
+      case 'road':
+        return Icons.directions_car;
+      case 'rail':
+        return Icons.train;
+      case 'water':
+        return Icons.directions_boat;
+      default:
+        return Icons.help_outline;
+    }
   }
 
   IconData _getIconForMode(TransportMode mode) {
@@ -317,67 +454,5 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case TransportMode.uvExpress:
         return Icons.local_shipping;
     }
-  }
-
-  List<Widget> _buildTransportModeToggles() {
-    final widgets = <Widget>[];
-    
-    // Sort modes alphabetically for consistent display
-    final sortedModes = _groupedFormulas.keys.toList()..sort();
-    
-    for (final mode in sortedModes) {
-      final formulas = _groupedFormulas[mode]!;
-      
-      // Add mode header
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 4.0),
-          child: Text(
-            mode,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.blue,
-            ),
-          ),
-        ),
-      );
-      
-      // Add subtype toggles
-      for (final formula in formulas) {
-        final modeSubTypeKey = '${formula.mode}::${formula.subType}';
-        final isHidden = _hiddenTransportModes.contains(modeSubTypeKey);
-        
-        widgets.add(
-          SwitchListTile(
-            title: Text('  ${formula.subType}'),
-            subtitle: formula.notes != null && formula.notes!.isNotEmpty
-                ? Text(
-                    '  ${formula.notes}',
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  )
-                : null,
-            value: !isHidden,
-            onChanged: (bool value) async {
-              final shouldHide = !value;
-              await _settingsService.toggleTransportMode(modeSubTypeKey, shouldHide);
-              
-              setState(() {
-                if (shouldHide) {
-                  _hiddenTransportModes.add(modeSubTypeKey);
-                } else {
-                  _hiddenTransportModes.remove(modeSubTypeKey);
-                }
-              });
-            },
-            contentPadding: const EdgeInsets.only(left: 32.0, right: 16.0),
-          ),
-        );
-      }
-    }
-    
-    return widgets;
   }
 }

@@ -11,24 +11,32 @@ void main() {
           fare: 50.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 50.0,
         ),
         FareResult(
           transportMode: 'Jeepney (Traditional)',
           fare: 12.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 12.0,
         ),
         FareResult(
           transportMode: 'Taxi (Metro)',
           fare: 150.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 150.0,
         ),
         FareResult(
           transportMode: 'Train (LRT)',
           fare: 20.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 20.0,
         ),
       ];
 
@@ -51,18 +59,24 @@ void main() {
           fare: 50.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 50.0,
         ),
         FareResult(
           transportMode: 'Jeepney (Traditional)',
           fare: 12.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 12.0,
         ),
         FareResult(
           transportMode: 'Taxi (Metro)',
           fare: 150.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 150.0,
         ),
       ];
 
@@ -76,6 +90,8 @@ void main() {
           fare: results[0].fare,
           indicatorLevel: results[0].indicatorLevel,
           isRecommended: true,
+          passengerCount: results[0].passengerCount,
+          totalFare: results[0].totalFare,
         );
       }
 
@@ -93,12 +109,16 @@ void main() {
           fare: 50.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 50.0,
         ),
         FareResult(
           transportMode: 'Jeepney (Traditional)',
           fare: 12.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 12.0,
         ),
       ];
 
@@ -110,6 +130,8 @@ void main() {
           fare: results[0].fare,
           indicatorLevel: results[0].indicatorLevel,
           isRecommended: true,
+          passengerCount: results[0].passengerCount,
+          totalFare: results[0].totalFare,
         );
       }
 
@@ -131,6 +153,8 @@ void main() {
           fare: results[0].fare,
           indicatorLevel: results[0].indicatorLevel,
           isRecommended: true,
+          passengerCount: results[0].passengerCount,
+          totalFare: results[0].totalFare,
         );
       }
 
@@ -144,6 +168,8 @@ void main() {
           fare: 12.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 12.0,
         ),
       ];
 
@@ -155,6 +181,8 @@ void main() {
           fare: results[0].fare,
           indicatorLevel: results[0].indicatorLevel,
           isRecommended: true,
+          passengerCount: results[0].passengerCount,
+          totalFare: results[0].totalFare,
         );
       }
 
@@ -168,18 +196,24 @@ void main() {
           fare: 12.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 12.0,
         ),
         FareResult(
           transportMode: 'Jeepney (Type B)',
           fare: 12.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 12.0,
         ),
         FareResult(
           transportMode: 'Bus (Regular)',
           fare: 50.0,
           indicatorLevel: IndicatorLevel.standard,
           isRecommended: false,
+          passengerCount: 1,
+          totalFare: 50.0,
         ),
       ];
 

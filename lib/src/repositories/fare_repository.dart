@@ -61,10 +61,26 @@ class FareRepository {
     await box.addAll(formulas);
   }
 
-  /// Saves a route to history
+  /// Saves a route to history with deduplication (upsert logic)
+  /// If a route with the same origin and destination exists, it updates it.
+  /// Otherwise, it creates a new entry.
   Future<void> saveRoute(SavedRoute route) async {
     final box = await openSavedRoutesBox();
-    await box.add(route);
+    
+    // Find existing route with same origin and destination
+    final existingIndex = box.values.toList().indexWhere(
+      (r) => r.origin.toLowerCase() == route.origin.toLowerCase() &&
+             r.destination.toLowerCase() == route.destination.toLowerCase(),
+    );
+    
+    if (existingIndex != -1) {
+      // Update existing route (replace at the same key)
+      final existingKey = box.keyAt(existingIndex);
+      await box.put(existingKey, route);
+    } else {
+      // Add new route
+      await box.add(route);
+    }
   }
 
   /// Retrieves all saved routes

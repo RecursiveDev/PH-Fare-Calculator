@@ -13,6 +13,7 @@ import '../../models/fare_result.dart';
 import '../../models/location.dart';
 import '../../models/saved_route.dart';
 import '../../repositories/fare_repository.dart';
+import '../../services/fare_comparison_service.dart';
 import '../../services/geocoding/geocoding_service.dart';
 import '../../services/routing/routing_service.dart';
 import '../../services/settings_service.dart';
@@ -40,6 +41,7 @@ class _MainScreenState extends State<MainScreen> {
   final FareRepository _fareRepository = getIt<FareRepository>();
   final RoutingService _routingService = getIt<RoutingService>();
   final SettingsService _settingsService = getIt<SettingsService>();
+  final FareComparisonService _fareComparisonService = getIt<FareComparisonService>();
   List<FareFormula> _availableFormulas = [];
   bool _isLoading = true;
 
@@ -56,6 +58,10 @@ class _MainScreenState extends State<MainScreen> {
   List<FareResult> _fareResults = [];
   String? _errorMessage;
   bool _isLoadingLocation = false;
+  int _passengerCount = 1;
+  int _regularPassengers = 1;
+  int _discountedPassengers = 0;
+  SortCriteria _sortCriteria = SortCriteria.priceAsc;
   
   // Text controller for origin field
   final TextEditingController _originTextController = TextEditingController();
@@ -234,6 +240,9 @@ class _MainScreenState extends State<MainScreen> {
               },
             ),
             const SizedBox(height: 16.0),
+            // Passenger Count Selector
+            _buildPassengerCountSelector(),
+            const SizedBox(height: 16.0),
             // Map Widget
             SizedBox(
               height: 300,
@@ -275,12 +284,16 @@ class _MainScreenState extends State<MainScreen> {
             ],
             if (_fareResults.isNotEmpty) ...[
               const SizedBox(height: 24.0),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: _saveRoute,
-                  icon: const Icon(Icons.save),
-                  label: Text(AppLocalizations.of(context)!.saveRouteButton),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _saveRoute,
+                    icon: const Icon(Icons.save),
+                    label: Text(AppLocalizations.of(context)!.saveRouteButton),
+                  ),
+                  _buildSortCriteriaSelector(),
+                ],
               ),
               const SizedBox(height: 16.0),
               ListView.separated(
@@ -293,7 +306,7 @@ class _MainScreenState extends State<MainScreen> {
                   final result = _fareResults[index];
                   return FareResultCard(
                     transportMode: result.transportMode,
-                    fare: result.fare,
+                    fare: result.totalFare,
                     indicatorLevel: result.indicatorLevel,
                     isRecommended: result.isRecommended,
                   );
@@ -303,6 +316,282 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPassengerCountSelector() {
+    final totalPassengers = _regularPassengers + _discountedPassengers;
+    
+    return Card(
+      elevation: 2,
+      child: InkWell(
+        onTap: _showPassengerDialog,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Passengers:',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        '$totalPassengers',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.edit, size: 18, color: Colors.grey),
+                    ],
+                  ),
+                ],
+              ),
+              if (_discountedPassengers > 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Regular: $_regularPassengers • Discounted: $_discountedPassengers',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showPassengerDialog() async {
+    int tempRegular = _regularPassengers;
+    int tempDiscounted = _discountedPassengers;
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Passenger Details'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Regular Passengers
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Regular Passengers:',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: tempRegular > 0
+                                ? () {
+                                    setDialogState(() {
+                                      tempRegular--;
+                                    });
+                                  }
+                                : null,
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$tempRegular',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            onPressed: tempRegular < 99
+                                ? () {
+                                    setDialogState(() {
+                                      tempRegular++;
+                                    });
+                                  }
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Discounted Passengers
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Discounted Passengers:',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            Text(
+                              '(Student/Senior/PWD - 20% off)',
+                              style: TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: tempDiscounted > 0
+                                ? () {
+                                    setDialogState(() {
+                                      tempDiscounted--;
+                                    });
+                                  }
+                                : null,
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$tempDiscounted',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            onPressed: tempDiscounted < 99
+                                ? () {
+                                    setDialogState(() {
+                                      tempDiscounted++;
+                                    });
+                                  }
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 20, color: Colors.blue[700]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Total: ${tempRegular + tempDiscounted} passenger(s)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue[900],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: (tempRegular + tempDiscounted) > 0
+                      ? () {
+                          setState(() {
+                            _regularPassengers = tempRegular;
+                            _discountedPassengers = tempDiscounted;
+                            _passengerCount = tempRegular + tempDiscounted;
+                            if (_originLocation != null && _destinationLocation != null) {
+                              _calculateFare();
+                            }
+                          });
+                          Navigator.of(context).pop();
+                        }
+                      : null,
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSortCriteriaSelector() {
+    return DropdownButton<SortCriteria>(
+      value: _sortCriteria,
+      items: const [
+        DropdownMenuItem(
+          value: SortCriteria.priceAsc,
+          child: Text('Price: Low to High'),
+        ),
+        DropdownMenuItem(
+          value: SortCriteria.priceDesc,
+          child: Text('Price: High to Low'),
+        ),
+      ],
+      onChanged: (SortCriteria? newValue) {
+        if (newValue != null) {
+          setState(() {
+            _sortCriteria = newValue;
+            // Re-sort existing results
+            if (_fareResults.isNotEmpty) {
+              _fareResults = _fareComparisonService.sortFares(_fareResults, _sortCriteria);
+              // Update the recommended flag for the first item
+              _updateRecommendedFlag();
+            }
+          });
+        }
+      },
+    );
+  }
+
+  void _updateRecommendedFlag() {
+    if (_fareResults.isEmpty) return;
+    
+    // Remove recommendation from all results first
+    _fareResults = _fareResults.map((result) {
+      return FareResult(
+        transportMode: result.transportMode,
+        fare: result.fare,
+        indicatorLevel: result.indicatorLevel,
+        isRecommended: false,
+        passengerCount: result.passengerCount,
+        totalFare: result.totalFare,
+      );
+    }).toList();
+    
+    // Mark the first one (based on current sort) as recommended
+    _fareResults[0] = FareResult(
+      transportMode: _fareResults[0].transportMode,
+      fare: _fareResults[0].fare,
+      indicatorLevel: _fareResults[0].indicatorLevel,
+      isRecommended: true,
+      passengerCount: _fareResults[0].passengerCount,
+      totalFare: _fareResults[0].totalFare,
     );
   }
 
@@ -600,35 +889,45 @@ class _MainScreenState extends State<MainScreen> {
           destLat: _destinationLocation!.latitude,
           destLng: _destinationLocation!.longitude,
           formula: formula,
+          passengerCount: _passengerCount,
+          regularCount: _regularPassengers,
+          discountedCount: _discountedPassengers,
         );
 
         final indicator = _hybridEngine.getIndicatorLevel(trafficFactor.name);
 
+        // Calculate total fare for display
+        final totalFare = fare;
+        
         results.add(
           FareResult(
             transportMode: '${formula.mode} (${formula.subType})',
             fare: fare,
             indicatorLevel: indicator,
             isRecommended: false, // Will be set after sorting
+            passengerCount: _passengerCount,
+            totalFare: totalFare,
           ),
         );
       }
 
-      // Sort results by price (cheapest first)
-      results.sort((a, b) => a.fare.compareTo(b.fare));
+      // Sort results using FareComparisonService
+      final sortedResults = _fareComparisonService.sortFares(results, _sortCriteria);
 
-      // Mark the cheapest option as recommended
-      if (results.isNotEmpty) {
-        results[0] = FareResult(
-          transportMode: results[0].transportMode,
-          fare: results[0].fare,
-          indicatorLevel: results[0].indicatorLevel,
+      // Mark the first option (based on sort criteria) as recommended
+      if (sortedResults.isNotEmpty) {
+        sortedResults[0] = FareResult(
+          transportMode: sortedResults[0].transportMode,
+          fare: sortedResults[0].fare,
+          indicatorLevel: sortedResults[0].indicatorLevel,
           isRecommended: true,
+          passengerCount: sortedResults[0].passengerCount,
+          totalFare: sortedResults[0].totalFare,
         );
       }
 
       setState(() {
-        _fareResults = results;
+        _fareResults = sortedResults;
       });
     } catch (e) {
       debugPrint('Error calculating fare: $e');

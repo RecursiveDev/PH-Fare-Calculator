@@ -23,10 +23,18 @@ class FareResult {
   @HiveField(3)
   final bool isRecommended;
 
+  @HiveField(4, defaultValue: 1)
+  final int passengerCount;
+
+  @HiveField(5, defaultValue: 0.0)
+  final double totalFare;
+
   FareResult({
     required this.transportMode,
     required this.fare,
     required this.indicatorLevel,
     this.isRecommended = false,
+    this.passengerCount = 1,
+    required this.totalFare,
   });
 }

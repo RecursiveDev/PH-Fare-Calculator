@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ph_fare_estimator/src/l10n/app_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:ph_fare_estimator/src/models/fare_formula.dart';
+import 'package:ph_fare_estimator/src/models/fare_result.dart';
 import 'package:ph_fare_estimator/src/models/location.dart';
 import 'package:ph_fare_estimator/src/presentation/screens/main_screen.dart';
 import 'package:ph_fare_estimator/src/presentation/widgets/fare_result_card.dart';
@@ -22,6 +23,19 @@ class MockFareComparisonService implements FareComparisonService {
   @override
   List<TransportMode> recommendModes({required double distanceInMeters, bool isMetroManila = true}) {
     return [];
+  }
+
+  @override
+  Future<List<FareResult>> compareFares({
+    required List<FareResult> fareResults,
+    int passengerCount = 1,
+  }) async {
+    return fareResults;
+  }
+
+  @override
+  List<FareResult> sortFares(List<FareResult> results, SortCriteria criteria) {
+    return results;
   }
 }
 
@@ -84,17 +98,32 @@ void main() {
 
   testWidgets('MainScreen renders correctly', (WidgetTester tester) async {
     await tester.pumpWidget(createWidgetUnderTest());
-    await tester.pumpAndSettle(); // Wait for init
+    await tester.pump(); // Initial build
+    
+    // Wait for and dismiss the first-time passenger type prompt
+    await tester.pump(const Duration(milliseconds: 400)); // Wait for dialog delay
+    await tester.pumpAndSettle();
+    
+    // Dismiss the dialog by selecting Regular
+    if (find.text('Welcome to PH Fare Estimator').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Regular'));
+      await tester.pumpAndSettle();
+    }
 
     expect(find.text('Fare Estimator'), findsOneWidget);
     expect(find.text('Origin'), findsOneWidget);
     expect(find.text('Destination'), findsOneWidget);
+    expect(find.text('Passengers:'), findsOneWidget);
     expect(find.text('Calculate Fare'), findsOneWidget);
   });
 
   testWidgets('Populates results when Calculate Fare is pressed', (
     WidgetTester tester,
   ) async {
+    // Setup larger screen size to accommodate all UI elements
+    tester.view.physicalSize = const Size(1200, 2000);
+    tester.view.devicePixelRatio = 1.0;
+    
     // Setup data
     final origin = Location(name: 'Luneta', latitude: 14.58, longitude: 120.97);
     final destination = Location(
@@ -106,7 +135,17 @@ void main() {
     mockGeocodingService.locationsToReturn = [origin];
 
     await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pump(); // Initial build
+    
+    // Wait for and dismiss the first-time passenger type prompt
+    await tester.pump(const Duration(milliseconds: 400)); // Wait for dialog delay
     await tester.pumpAndSettle();
+    
+    // Dismiss the dialog by selecting Regular
+    if (find.text('Welcome to PH Fare Estimator').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Regular'));
+      await tester.pumpAndSettle();
+    }
 
     // 1. Search and select Origin
     await tester.enterText(find.widgetWithText(TextField, 'Origin'), 'Luneta');
@@ -137,5 +176,11 @@ void main() {
     expect(find.textContaining('Could not calculate fare'), findsNothing);
 
     expect(find.byType(FareResultCard), findsWidgets);
+    
+    // Reset view size
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
   });
 }

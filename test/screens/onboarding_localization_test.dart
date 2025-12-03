@@ -78,6 +78,17 @@ class FakeSettingsService implements SettingsService {
   Future<bool> hasSetDiscountType() async {
     return hasSetDiscount;
   }
+
+  @override
+  Future<Set<String>> getEnabledModes() async {
+    return hiddenTransportModes;
+  }
+
+  @override
+  Future<void> toggleMode(String modeId) async {
+    final isCurrentlyHidden = hiddenTransportModes.contains(modeId);
+    await toggleTransportMode(modeId, !isCurrentlyHidden);
+  }
 }
 
 void main() {

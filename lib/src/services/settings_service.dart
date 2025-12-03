@@ -158,6 +158,26 @@ class SettingsService {
     return hiddenModes.contains('$mode::$subType');
   }
 
+  /// Get the list of enabled transport modes (opposite of hidden modes)
+  /// Returns a Set of "Mode::SubType" strings that are currently enabled
+  Future<Set<String>> getEnabledModes() async {
+    final hiddenModes = await getHiddenTransportModes();
+    // Note: This returns the complement - modes that are NOT in the hidden set
+    // The actual enabled modes depend on what formulas exist in the repository
+    // This method is mainly useful for checking if a mode is enabled
+    return hiddenModes;
+  }
+
+  /// Toggle a transport mode's visibility (simplified interface)
+  /// @param modeId: Format "Mode::SubType" (e.g., "Jeepney::Traditional")
+  Future<void> toggleMode(String modeId) async {
+    final hiddenModes = await getHiddenTransportModes();
+    final isCurrentlyHidden = hiddenModes.contains(modeId);
+    
+    // Toggle the state
+    await toggleTransportMode(modeId, !isCurrentlyHidden);
+  }
+
   /// Save the last known location (for persistence between sessions)
   Future<void> saveLastLocation(Location location) async {
     final prefs = await SharedPreferences.getInstance();

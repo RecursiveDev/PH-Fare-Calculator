@@ -113,6 +113,17 @@ class MockSettingsService implements SettingsService {
   Future<bool> hasSetDiscountType() async {
     return hasSetDiscount;
   }
+
+  @override
+  Future<Set<String>> getEnabledModes() async {
+    return hiddenTransportModes;
+  }
+
+  @override
+  Future<void> toggleMode(String modeId) async {
+    final isCurrentlyHidden = hiddenTransportModes.contains(modeId);
+    await toggleTransportMode(modeId, !isCurrentlyHidden);
+  }
 }
 
 class MockGeocodingService implements GeocodingService {
@@ -163,6 +174,9 @@ class MockHybridEngine implements HybridEngine {
     required double destLng,
     required FareFormula formula,
     bool isProvincial = false,
+    int passengerCount = 1,
+    int regularCount = 1,
+    int discountedCount = 0,
   }) async {
     return dynamicFareToReturn ?? 100.0;
   }
@@ -174,7 +188,13 @@ class MockHybridEngine implements HybridEngine {
 
   @override
   Future<double?> calculateStaticFare(
-      TransportMode transportMode, String origin, String destination) async {
+    TransportMode transportMode,
+    String origin,
+    String destination, {
+    int passengerCount = 1,
+    int regularCount = 1,
+    int discountedCount = 0,
+  }) async {
     return 50.0;
   }
 
@@ -189,6 +209,9 @@ class MockHybridEngine implements HybridEngine {
     String? destinationName,
     FareFormula? formula,
     bool isProvincial = false,
+    int passengerCount = 1,
+    int regularCount = 1,
+    int discountedCount = 0,
   }) async {
     return dynamicFareToReturn ?? 100.0;
   }

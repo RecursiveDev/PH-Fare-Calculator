@@ -75,9 +75,12 @@ void main() {
         destination: 'Test Dest',
         fareResults: [
           FareResult(
-              transportMode: 'Jeep',
-              fare: 10.0,
-              indicatorLevel: IndicatorLevel.standard)
+            transportMode: 'Jeep',
+            fare: 10.0,
+            indicatorLevel: IndicatorLevel.standard,
+            passengerCount: 1,
+            totalFare: 10.0,
+          )
         ],
         timestamp: DateTime.now(),
       );
@@ -107,14 +110,17 @@ void main() {
   group('ReferenceScreen', () {
     testWidgets('Renders static data', (WidgetTester tester) async {
       await tester.pumpWidget(const MaterialApp(home: ReferenceScreen()));
+      await tester.pumpAndSettle(); // Wait for async data loading
       
-      expect(find.text('Static Cheat Sheets'), findsOneWidget);
-      expect(find.text('Taxi Meter Guide'), findsOneWidget);
-      expect(find.text('LRT Station Matrix'), findsOneWidget);
+      // Phase 5 refactored the Reference Screen with new sections
+      expect(find.text('Fare Reference Guide'), findsOneWidget);
+      expect(find.text('Discount Information'), findsOneWidget);
+      expect(find.text('Road Transport Fares'), findsOneWidget);
       
-      // Check for specific content
-      expect(find.text('White Taxi (Regular)'), findsOneWidget);
-      expect(find.text('MRT-3'), findsOneWidget);
+      // Check for specific discount content
+      expect(find.text('Students'), findsOneWidget);
+      expect(find.text('Senior Citizens (60+)'), findsOneWidget);
+      expect(find.text('Persons with Disabilities (PWD)'), findsOneWidget);
     });
   });
 }

@@ -1,5 +1,13 @@
 import 'package:injectable/injectable.dart';
 import '../models/transport_mode.dart';
+import '../models/fare_result.dart';
+
+enum SortCriteria {
+  priceAsc,
+  priceDesc,
+  durationAsc,
+  durationDesc,
+}
 
 @lazySingleton
 class FareComparisonService {
@@ -56,5 +64,53 @@ class FareComparisonService {
 
     // Deduplicate just in case
     return recommendedModes.toSet().toList();
+  }
+
+  /// Sorts a list of fare results based on the specified criteria.
+  ///
+  /// [results]: The list of FareResult objects to sort.
+  /// [criteria]: The sorting criteria (price or duration, ascending or descending).
+  ///
+  /// Returns a new sorted list of FareResult objects.
+  List<FareResult> sortFares(
+    List<FareResult> results,
+    SortCriteria criteria,
+  ) {
+    final sortedResults = List<FareResult>.from(results);
+    
+    switch (criteria) {
+      case SortCriteria.priceAsc:
+        sortedResults.sort((a, b) => a.totalFare.compareTo(b.totalFare));
+        break;
+      case SortCriteria.priceDesc:
+        sortedResults.sort((a, b) => b.totalFare.compareTo(a.totalFare));
+        break;
+      case SortCriteria.durationAsc:
+        // Note: Duration sorting would require duration data in FareResult
+        // For now, we'll use the same logic as price or throw
+        throw UnimplementedError('Duration sorting requires duration data in FareResult');
+      case SortCriteria.durationDesc:
+        // Note: Duration sorting would require duration data in FareResult
+        throw UnimplementedError('Duration sorting requires duration data in FareResult');
+    }
+    
+    return sortedResults;
+  }
+
+  /// Compares multiple transport modes and returns fare results.
+  ///
+  /// This method is a convenience wrapper that can be used to compare
+  /// fares across different transport modes with passenger count support.
+  ///
+  /// Note: The actual fare calculation should be done by HybridEngine.
+  /// This method primarily provides a consistent interface for fare comparison.
+  Future<List<FareResult>> compareFares({
+    required List<FareResult> fareResults,
+    int passengerCount = 1,
+  }) async {
+    // This method currently just returns the results as-is since the actual
+    // calculation with passengerCount happens in HybridEngine.
+    // It's here to provide a future extension point for more complex comparison logic.
+    return fareResults;
   }
 }

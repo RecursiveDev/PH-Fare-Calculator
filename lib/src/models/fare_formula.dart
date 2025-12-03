@@ -25,6 +25,9 @@ class FareFormula {
   @HiveField(5)
   final String? notes;
 
+  @HiveField(7, defaultValue: false)
+  final bool isPerHead;
+
   FareFormula({
     required this.mode,
     required this.subType,
@@ -33,6 +36,7 @@ class FareFormula {
     this.provincialMultiplier,
     this.minimumFare,
     this.notes,
+    this.isPerHead = false,
   });
 
   factory FareFormula.fromJson(Map<String, dynamic> json) {
@@ -48,6 +52,7 @@ class FareFormula {
           ? (json['minimum_fare'] as num).toDouble()
           : null,
       notes: json['notes'],
+      isPerHead: json['is_per_head'] ?? false,
     );
   }
 }

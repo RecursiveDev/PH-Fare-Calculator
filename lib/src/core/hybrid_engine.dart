@@ -60,6 +60,9 @@ class HybridEngine {
   /// [originName], [destinationName]: Required for static fares (Train, Ferry).
   /// [formula]: Required for dynamic fares.
   /// [isProvincial]: Optional for dynamic fares.
+  /// [passengerCount]: Number of passengers (default 1). Deprecated - use regularCount and discountedCount instead.
+  /// [regularCount]: Number of regular passengers (default 1).
+  /// [discountedCount]: Number of discounted passengers (Student/Senior/PWD - default 0).
   Future<double?> calculateFare({
     required TransportMode transportMode,
     double? originLat,
@@ -70,6 +73,9 @@ class HybridEngine {
     String? destinationName,
     FareFormula? formula,
     bool isProvincial = false,
+    int passengerCount = 1,
+    int regularCount = 1,
+    int discountedCount = 0,
   }) async {
     if (transportMode == TransportMode.train ||
         transportMode == TransportMode.ferry) {
@@ -77,7 +83,14 @@ class HybridEngine {
         throw ArgumentError(
             'Origin and Destination names are required for static fares.');
       }
-      return calculateStaticFare(transportMode, originName, destinationName);
+      return calculateStaticFare(
+        transportMode,
+        originName,
+        destinationName,
+        passengerCount: passengerCount,
+        regularCount: regularCount,
+        discountedCount: discountedCount,
+      );
     } else {
       // Assume dynamic fare for Jeepney, Bus, Taxi, etc
       if (originLat == null ||
@@ -95,13 +108,22 @@ class HybridEngine {
         destLng: destLng,
         formula: formula,
         isProvincial: isProvincial,
+        passengerCount: passengerCount,
+        regularCount: regularCount,
+        discountedCount: discountedCount,
       );
     }
   }
 
   /// Looks up the static fare from the loaded matrix.
   Future<double?> calculateStaticFare(
-      TransportMode transportMode, String origin, String destination) async {
+    TransportMode transportMode,
+    String origin,
+    String destination, {
+    int passengerCount = 1,
+    int regularCount = 1,
+    int discountedCount = 0,
+  }) async {
     if (!_isInitialized) await initialize();
 
     double? baseFare;
@@ -136,13 +158,30 @@ class HybridEngine {
 
     if (baseFare == null) return null;
 
-    // Apply discount if eligible (Student, Senior, PWD get 20% off)
-    final discountType = await _settingsService.getUserDiscountType();
-    if (discountType.isEligibleForDiscount) {
-      baseFare = baseFare * discountType.fareMultiplier;
+    // Calculate total fare for mixed passenger groups
+    // Regular passengers pay full fare, discounted passengers pay 80% (20% off)
+    double totalFare = 0.0;
+    
+    if (regularCount > 0) {
+      totalFare += baseFare * regularCount;
+    }
+    
+    if (discountedCount > 0) {
+      final discountedFare = baseFare * 0.80; // 20% discount
+      totalFare += discountedFare * discountedCount;
+    }
+    
+    // Fallback to old logic if using deprecated passengerCount parameter
+    if (regularCount == 1 && discountedCount == 0 && passengerCount > 1) {
+      // Legacy behavior: apply global discount setting
+      final discountType = await _settingsService.getUserDiscountType();
+      if (discountType.isEligibleForDiscount) {
+        baseFare = baseFare * discountType.fareMultiplier;
+      }
+      totalFare = baseFare * passengerCount;
     }
 
-    return baseFare;
+    return totalFare;
   }
 
   /// Calculates the dynamic fare based on road distance and a specific fare formula.
@@ -153,6 +192,9 @@ class HybridEngine {
     required double destLng,
     required FareFormula formula,
     bool isProvincial = false,
+    int passengerCount = 1,
+    int regularCount = 1,
+    int discountedCount = 0,
   }) async {
     try {
       // 1. Get route result from routing service
@@ -207,13 +249,45 @@ class HybridEngine {
         totalFare = formula.minimumFare!;
       }
 
-      // 6. Apply discount if eligible (Student, Senior, PWD get 20% off)
-      final discountType = await _settingsService.getUserDiscountType();
-      if (discountType.isEligibleForDiscount) {
-        totalFare = totalFare * discountType.fareMultiplier;
+      // 6. Calculate total for mixed passenger groups if using new parameters
+      double finalFare = 0.0;
+      
+      // Use new logic only if user explicitly provided non-default passenger counts
+      // Defaults are regularCount=1, discountedCount=0, so if either is different, use new logic
+      if (regularCount != 1 || discountedCount != 0) {
+        // New logic: separate regular and discounted passengers
+        if (formula.isPerHead) {
+          // Per-head fares: calculate separately for each group
+          if (regularCount > 0) {
+            finalFare += totalFare * regularCount;
+          }
+          if (discountedCount > 0) {
+            final discountedFare = totalFare * 0.80; // 20% discount
+            finalFare += discountedFare * discountedCount;
+          }
+        } else {
+          // Non-per-head fares: apply best discount if any discounted passengers
+          if (discountedCount > 0) {
+            finalFare = totalFare * 0.80; // Apply discount to entire fare
+          } else {
+            finalFare = totalFare;
+          }
+        }
+      } else {
+        // Legacy logic: use global discount setting and passengerCount
+        final discountType = await _settingsService.getUserDiscountType();
+        if (discountType.isEligibleForDiscount) {
+          totalFare = totalFare * discountType.fareMultiplier;
+        }
+        
+        if (formula.isPerHead && passengerCount > 1) {
+          totalFare = totalFare * passengerCount;
+        }
+        
+        finalFare = totalFare;
       }
 
-      return totalFare;
+      return finalFare;
     } catch (e) {
       // Re-throw the error to be handled by the UI or caller
       throw Exception('Failed to calculate dynamic fare: $e');
