@@ -11,6 +11,12 @@ import 'package:ph_fare_calculator/src/repositories/fare_repository.dart';
 import 'package:ph_fare_calculator/src/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Modern splash screen with Jeepney-inspired design and smooth animations.
+/// Implements the UI/UX design specification with:
+/// - Animated logo with scale and fade effects
+/// - Gradient background using Philippine flag colors
+/// - Modern loading indicator
+/// - Accessibility support via Semantics widgets
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -18,11 +24,85 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  // Animation controllers
+  late final AnimationController _logoController;
+  late final AnimationController _textController;
+  late final AnimationController _loadingController;
+
+  // Animations
+  late final Animation<double> _logoScale;
+  late final Animation<double> _logoOpacity;
+  late final Animation<double> _textOpacity;
+  late final Animation<Offset> _textSlide;
+
+  // Brand colors from AppTheme
+  static const Color _primaryBlue = Color(0xFF0038A8);
+  static const Color _secondaryYellow = Color(0xFFFCD116);
+
   @override
   void initState() {
     super.initState();
+    _initializeAnimations();
     _initializeApp();
+  }
+
+  void _initializeAnimations() {
+    // Logo animation: scale up and fade in, then fade out
+    _logoController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _logoController,
+        curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
+      ),
+    );
+
+    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _logoController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
+      ),
+    );
+
+    // Text animation: fade in and slide up
+    _textController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _textOpacity = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeIn));
+
+    _textSlide = Tween<Offset>(
+      begin: const Offset(0.0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeOut));
+
+    // Loading indicator animation
+    _loadingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+
+    // Start animations sequence
+    _logoController.forward().then((_) {
+      _textController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _logoController.dispose();
+    _textController.dispose();
+    _loadingController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeApp() async {
@@ -32,7 +112,6 @@ class _SplashScreenState extends State<SplashScreen> {
         await configureDependencies();
       } catch (e) {
         // In tests, dependencies might be mocked/pre-registered.
-        // In prod, this shouldn't fail, but if it does, we log it.
         debugPrint('DI config warning: $e');
       }
 
@@ -40,7 +119,7 @@ class _SplashScreenState extends State<SplashScreen> {
       final appDocumentDir = await getApplicationDocumentsDirectory();
       await Hive.initFlutter(appDocumentDir.path);
 
-      // Wrap adapter registration in try-catch to avoid issues during hot restart or tests
+      // Wrap adapter registration in try-catch
       try {
         if (!Hive.isAdapterRegistered(0)) {
           Hive.registerAdapter(FareFormulaAdapter());
@@ -71,65 +150,268 @@ class _SplashScreenState extends State<SplashScreen> {
       final hasCompletedOnboarding =
           prefs.getBool('hasCompletedOnboarding') ?? false;
 
-      // Minimum splash duration
-      await Future.delayed(const Duration(seconds: 2));
+      // Minimum splash duration for animation completion
+      await Future<void>.delayed(const Duration(milliseconds: 2500));
 
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => hasCompletedOnboarding
-                ? const MainScreen()
-                : const OnboardingScreen(),
-          ),
-        );
+        _navigateToNextScreen(hasCompletedOnboarding);
       }
     } catch (e, stackTrace) {
       debugPrint('Initialization error: $e');
       debugPrint('Stack trace: $stackTrace');
 
-      // Show error screen instead of hanging
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => Scaffold(
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Initialization Failed',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Error: $e',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
+        _showErrorScreen(e);
       }
     }
   }
 
+  void _navigateToNextScreen(bool hasCompletedOnboarding) {
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder<void>(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            hasCompletedOnboarding
+            ? const MainScreen()
+            : const OnboardingScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 500),
+      ),
+    );
+  }
+
+  void _showErrorScreen(Object error) {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [_primaryBlue.withValues(alpha: 0.1), Colors.white],
+              ),
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCE1126).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.error_outline_rounded,
+                        size: 64,
+                        color: Color(0xFFCE1126),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Initialization Failed',
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1A1C1E),
+                          ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error: $error',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF757575),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: FlutterLogo(size: 100)));
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Semantics(
+      label: 'PH Fare Calculator loading screen',
+      child: Scaffold(
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                _primaryBlue,
+                _primaryBlue.withValues(alpha: 0.85),
+                colorScheme.primary.withValues(alpha: 0.7),
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Spacer(flex: 2),
+                // Animated Logo
+                _buildAnimatedLogo(),
+                const SizedBox(height: 32),
+                // Animated App Title
+                _buildAnimatedTitle(),
+                const SizedBox(height: 8),
+                // Animated Tagline
+                _buildAnimatedTagline(),
+                const Spacer(flex: 2),
+                // Loading Indicator
+                _buildLoadingIndicator(),
+                const SizedBox(height: 48),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedLogo() {
+    return Semantics(
+      label: 'Application logo',
+      child: AnimatedBuilder(
+        animation: _logoController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _logoScale.value,
+            child: Opacity(opacity: _logoOpacity.value, child: child),
+          );
+        },
+        child: Container(
+          width: 140,
+          height: 140,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [_primaryBlue, _primaryBlue.withValues(alpha: 0.8)],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.directions_bus_rounded,
+                  size: 56,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedTitle() {
+    return Semantics(
+      label: 'PH Fare Calculator',
+      child: SlideTransition(
+        position: _textSlide,
+        child: FadeTransition(
+          opacity: _textOpacity,
+          child: const Text(
+            'PH Fare Calculator',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedTagline() {
+    return Semantics(
+      label: 'Know your fare before you ride',
+      child: SlideTransition(
+        position: _textSlide,
+        child: FadeTransition(
+          opacity: _textOpacity,
+          child: Text(
+            'Know your fare before you ride',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              color: Colors.white.withValues(alpha: 0.9),
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Semantics(
+      label: 'Loading application',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 180,
+            child: AnimatedBuilder(
+              animation: _loadingController,
+              builder: (context, child) {
+                return LinearProgressIndicator(
+                  value: null,
+                  backgroundColor: Colors.white.withValues(alpha: 0.3),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    _secondaryYellow,
+                  ),
+                  minHeight: 4,
+                  borderRadius: BorderRadius.circular(2),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Loading...',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

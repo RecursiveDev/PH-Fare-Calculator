@@ -79,4 +79,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trafficHighSubtitle => 'Heavy traffic';
+
+  @override
+  String get skipButtonLabel => 'Skip';
+
+  @override
+  String get nextButton => 'Next';
+
+  @override
+  String get getStartedButton => 'Get Started';
+
+  @override
+  String get onboardingKnowFareDescription =>
+      'Calculate fares for jeepneys, buses, trains, and ferries across the Philippines.';
+
+  @override
+  String get onboardingWorkOfflineTitle => 'Work Offline';
+
+  @override
+  String get onboardingWorkOfflineDescription =>
+      'Access fare data anytime, even without an internet connection.';
+
+  @override
+  String get onboardingLanguageTitle => 'Choose Your Language';
 }

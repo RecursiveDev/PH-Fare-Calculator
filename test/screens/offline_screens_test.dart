@@ -45,14 +45,20 @@ void main() {
   group('OfflineMenuScreen', () {
     testWidgets('Renders menu options', (WidgetTester tester) async {
       await tester.pumpWidget(const MaterialApp(home: OfflineMenuScreen()));
+      // Wait for animations to start
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('Offline Reference'), findsOneWidget);
       expect(find.text('Saved Routes'), findsOneWidget);
-      expect(find.text('Static Cheat Sheets'), findsOneWidget);
+      expect(find.text('Fare Reference'), findsOneWidget);
     });
 
     testWidgets('Navigates to SavedRoutesScreen', (WidgetTester tester) async {
       await tester.pumpWidget(const MaterialApp(home: OfflineMenuScreen()));
+      // Wait for animations to complete
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       await tester.tap(find.text('Saved Routes'));
 
@@ -65,9 +71,14 @@ void main() {
 
     testWidgets('Navigates to ReferenceScreen', (WidgetTester tester) async {
       await tester.pumpWidget(const MaterialApp(home: OfflineMenuScreen()));
+      // Wait for animations to complete
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
-      await tester.tap(find.text('Static Cheat Sheets'));
-      await tester.pumpAndSettle();
+      await tester.tap(find.text('Fare Reference'));
+      // Use pump instead of pumpAndSettle for animation-heavy screens
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
 
       expect(find.byType(ReferenceScreen), findsOneWidget);
     });
@@ -99,7 +110,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Test Origin to Test Dest'), findsOneWidget);
+      // The new UI displays origin and destination separately with route indicator
+      expect(find.text('Test Origin'), findsOneWidget);
+      expect(find.text('Test Dest'), findsOneWidget);
     });
 
     testWidgets('Shows empty message when no routes', (
@@ -114,7 +127,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('No saved routes yet.'), findsOneWidget);
+      // The new UI displays a modern empty state with different text
+      expect(find.text('No Saved Routes Yet'), findsOneWidget);
     });
   });
 

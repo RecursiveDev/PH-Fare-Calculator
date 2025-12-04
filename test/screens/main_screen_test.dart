@@ -138,7 +138,8 @@ void main() {
     expect(find.text('PH Fare Calculator'), findsOneWidget);
     expect(find.text('Origin'), findsOneWidget);
     expect(find.text('Destination'), findsOneWidget);
-    expect(find.text('Passengers:'), findsOneWidget);
+    // New UI uses chip-based passenger selector
+    expect(find.text('1 Passenger'), findsOneWidget);
     expect(find.text('Calculate Fare'), findsOneWidget);
   });
 

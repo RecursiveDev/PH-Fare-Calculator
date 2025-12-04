@@ -235,6 +235,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Heavy traffic'**
   String get trafficHighSubtitle;
+
+  /// No description provided for @skipButtonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skipButtonLabel;
+
+  /// No description provided for @nextButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get nextButton;
+
+  /// No description provided for @getStartedButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get getStartedButton;
+
+  /// No description provided for @onboardingKnowFareDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculate fares for jeepneys, buses, trains, and ferries across the Philippines.'**
+  String get onboardingKnowFareDescription;
+
+  /// No description provided for @onboardingWorkOfflineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Work Offline'**
+  String get onboardingWorkOfflineTitle;
+
+  /// No description provided for @onboardingWorkOfflineDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Access fare data anytime, even without an internet connection.'**
+  String get onboardingWorkOfflineDescription;
+
+  /// No description provided for @onboardingLanguageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Your Language'**
+  String get onboardingLanguageTitle;
 }
 
 class _AppLocalizationsDelegate

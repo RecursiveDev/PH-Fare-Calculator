@@ -283,16 +283,20 @@ void main() {
       await tester.pumpWidget(createSettingsScreen());
       await tester.pumpAndSettle(const Duration(seconds: 1));
 
-      // Scroll down to see Passenger Type section
-      await tester.drag(find.byType(ListView), const Offset(0, -300));
-      await tester.pumpAndSettle();
-
       // Find by the radio tile with discounted value
       final discountedRadio = find.byWidgetPredicate(
         (widget) =>
             widget is RadioListTile<DiscountType> &&
             widget.value == DiscountType.discounted,
       );
+
+      // Scroll until the discounted radio is visible
+      await tester.scrollUntilVisible(
+        discountedRadio,
+        200.0,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.pumpAndSettle();
 
       expect(discountedRadio, findsOneWidget);
       await tester.tap(discountedRadio);
