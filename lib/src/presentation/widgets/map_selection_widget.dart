@@ -40,7 +40,7 @@ class _MapSelectionWidgetState extends State<MapSelectionWidget> {
   @override
   void didUpdateWidget(MapSelectionWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // Update local state when widget properties change
     if (widget.origin != oldWidget.origin) {
       _origin = widget.origin;
@@ -48,7 +48,7 @@ class _MapSelectionWidgetState extends State<MapSelectionWidget> {
         _moveCameraToPoint(_origin!);
       }
     }
-    
+
     if (widget.destination != oldWidget.destination) {
       _destination = widget.destination;
       if (_destination != null && _origin != null) {
@@ -64,10 +64,7 @@ class _MapSelectionWidgetState extends State<MapSelectionWidget> {
   void _fitBounds(LatLng origin, LatLng destination) {
     final bounds = LatLngBounds(origin, destination);
     _mapController.fitCamera(
-      CameraFit.bounds(
-        bounds: bounds,
-        padding: const EdgeInsets.all(50),
-      ),
+      CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50)),
     );
   }
 
@@ -121,7 +118,7 @@ class _MapSelectionWidgetState extends State<MapSelectionWidget> {
 
     // Define Philippines bounds to restrict map view
     final philippinesBounds = LatLngBounds(
-      const LatLng(4.215806, 116.931557),  // Southwest corner
+      const LatLng(4.215806, 116.931557), // Southwest corner
       const LatLng(21.321780, 126.605345), // Northeast corner
     );
 
@@ -130,7 +127,10 @@ class _MapSelectionWidgetState extends State<MapSelectionWidget> {
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            initialCenter: const LatLng(14.5995, 120.9842), // Manila coordinates
+            initialCenter: const LatLng(
+              14.5995,
+              120.9842,
+            ), // Manila coordinates
             initialZoom: 11.0,
             minZoom: 5.0, // Prevent zooming out too far
             onTap: _handleTap,

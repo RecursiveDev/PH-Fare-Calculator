@@ -20,7 +20,8 @@ class HaversineRoutingService implements RoutingService {
     final dLat = _toRadians(destLat - originLat);
     final dLng = _toRadians(destLng - originLng);
 
-    final a = sin(dLat / 2) * sin(dLat / 2) +
+    final a =
+        sin(dLat / 2) * sin(dLat / 2) +
         cos(_toRadians(originLat)) *
             cos(_toRadians(destLat)) *
             sin(dLng / 2) *

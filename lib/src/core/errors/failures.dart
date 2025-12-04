@@ -23,18 +23,21 @@ class ConfigSyncFailure extends Failure {
 
 class LocationServiceDisabledFailure extends Failure {
   const LocationServiceDisabledFailure([
-    super.message = 'Location services are disabled. Please enable them in your device settings.',
+    super.message =
+        'Location services are disabled. Please enable them in your device settings.',
   ]);
 }
 
 class LocationPermissionDeniedFailure extends Failure {
   const LocationPermissionDeniedFailure([
-    super.message = 'Location permission denied. Please grant location access to use this feature.',
+    super.message =
+        'Location permission denied. Please grant location access to use this feature.',
   ]);
 }
 
 class LocationPermissionDeniedForeverFailure extends Failure {
   const LocationPermissionDeniedForeverFailure([
-    super.message = 'Location permission permanently denied. Please enable it in app settings.',
+    super.message =
+        'Location permission permanently denied. Please enable it in app settings.',
   ]);
 }

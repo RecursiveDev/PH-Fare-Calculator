@@ -25,16 +25,20 @@ class FareRepository {
     final box = await openFormulaBox();
     if (box.isEmpty || force) {
       if (force) await box.clear();
-      
+
       try {
-        final String jsonString = await rootBundle.loadString('assets/data/fare_formulas.json');
+        final String jsonString = await rootBundle.loadString(
+          'assets/data/fare_formulas.json',
+        );
         final Map<String, dynamic> jsonMap = json.decode(jsonString);
         final List<FareFormula> formulas = [];
 
         // Parse "road" formulas
         if (jsonMap.containsKey('road')) {
           final List<dynamic> roadList = jsonMap['road'];
-          formulas.addAll(roadList.map((e) => FareFormula.fromJson(e)).toList());
+          formulas.addAll(
+            roadList.map((e) => FareFormula.fromJson(e)).toList(),
+          );
         }
 
         // Add other modes here if/when they are added to the JSON
@@ -66,13 +70,14 @@ class FareRepository {
   /// Otherwise, it creates a new entry.
   Future<void> saveRoute(SavedRoute route) async {
     final box = await openSavedRoutesBox();
-    
+
     // Find existing route with same origin and destination
     final existingIndex = box.values.toList().indexWhere(
-      (r) => r.origin.toLowerCase() == route.origin.toLowerCase() &&
-             r.destination.toLowerCase() == route.destination.toLowerCase(),
+      (r) =>
+          r.origin.toLowerCase() == route.origin.toLowerCase() &&
+          r.destination.toLowerCase() == route.destination.toLowerCase(),
     );
-    
+
     if (existingIndex != -1) {
       // Update existing route (replace at the same key)
       final existingKey = box.keyAt(existingIndex);

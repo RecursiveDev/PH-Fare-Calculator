@@ -155,13 +155,13 @@ void main() {
 
       await fareRepository.saveRoute(route2);
       routes = await fareRepository.getSavedRoutes();
-      
+
       // Should still have only 1 route (updated, not added)
       expect(routes.length, 1);
-      
+
       // Should have the new timestamp
       expect(routes.first.timestamp, secondTimestamp);
-      
+
       // Should have the new fare results
       expect(routes.first.fareResults.length, 1);
       expect(routes.first.fareResults.first.transportMode, 'Bus');
@@ -177,7 +177,7 @@ void main() {
       );
 
       await fareRepository.saveRoute(route1);
-      
+
       await Future.delayed(const Duration(milliseconds: 50));
 
       final route2 = SavedRoute(
@@ -189,41 +189,44 @@ void main() {
 
       await fareRepository.saveRoute(route2);
       final routes = await fareRepository.getSavedRoutes();
-      
+
       // Should still have only 1 route (case-insensitive match)
       expect(routes.length, 1);
     });
 
-    test('allows different routes with different origin or destination', () async {
-      final route1 = SavedRoute(
-        origin: 'Manila',
-        destination: 'Quezon City',
-        fareResults: [],
-        timestamp: DateTime.now(),
-      );
+    test(
+      'allows different routes with different origin or destination',
+      () async {
+        final route1 = SavedRoute(
+          origin: 'Manila',
+          destination: 'Quezon City',
+          fareResults: [],
+          timestamp: DateTime.now(),
+        );
 
-      final route2 = SavedRoute(
-        origin: 'Manila',
-        destination: 'Makati',
-        fareResults: [],
-        timestamp: DateTime.now(),
-      );
+        final route2 = SavedRoute(
+          origin: 'Manila',
+          destination: 'Makati',
+          fareResults: [],
+          timestamp: DateTime.now(),
+        );
 
-      final route3 = SavedRoute(
-        origin: 'Pasig',
-        destination: 'Quezon City',
-        fareResults: [],
-        timestamp: DateTime.now(),
-      );
+        final route3 = SavedRoute(
+          origin: 'Pasig',
+          destination: 'Quezon City',
+          fareResults: [],
+          timestamp: DateTime.now(),
+        );
 
-      await fareRepository.saveRoute(route1);
-      await fareRepository.saveRoute(route2);
-      await fareRepository.saveRoute(route3);
-      
-      final routes = await fareRepository.getSavedRoutes();
-      
-      // Should have 3 different routes
-      expect(routes.length, 3);
-    });
+        await fareRepository.saveRoute(route1);
+        await fareRepository.saveRoute(route2);
+        await fareRepository.saveRoute(route3);
+
+        final routes = await fareRepository.getSavedRoutes();
+
+        // Should have 3 different routes
+        expect(routes.length, 3);
+      },
+    );
   });
 }

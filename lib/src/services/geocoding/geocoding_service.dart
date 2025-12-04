@@ -15,8 +15,7 @@ abstract class GeocodingService {
 class OpenStreetMapGeocodingService implements GeocodingService {
   final http.Client _client;
 
-  OpenStreetMapGeocodingService()
-      : _client = http.Client();
+  OpenStreetMapGeocodingService() : _client = http.Client();
 
   @override
   Future<List<Location>> getLocations(String query) async {
@@ -53,7 +52,10 @@ class OpenStreetMapGeocodingService implements GeocodingService {
   }
 
   @override
-  Future<Location> getAddressFromLatLng(double latitude, double longitude) async {
+  Future<Location> getAddressFromLatLng(
+    double latitude,
+    double longitude,
+  ) async {
     try {
       // Reverse geocode using Nominatim
       final url = Uri.parse(
@@ -62,24 +64,24 @@ class OpenStreetMapGeocodingService implements GeocodingService {
 
       final response = await _client.get(
         url,
-        headers: {
-          'User-Agent': 'PHFareEstimator/1.0',
-        },
+        headers: {'User-Agent': 'PHFareEstimator/1.0'},
       );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        
+
         // Extract address from Nominatim response
         final address = data['address'] as Map<String, dynamic>?;
-        String displayName = data['display_name'] as String? ?? 'Unknown Location';
-        
+        String displayName =
+            data['display_name'] as String? ?? 'Unknown Location';
+
         // Try to build a more concise name from address components
         if (address != null) {
           final road = address['road'] as String?;
           final suburb = address['suburb'] as String?;
-          final city = address['city'] as String? ?? address['municipality'] as String?;
-          
+          final city =
+              address['city'] as String? ?? address['municipality'] as String?;
+
           if (road != null && city != null) {
             displayName = '$road, $city';
           } else if (suburb != null && city != null) {
@@ -95,7 +97,9 @@ class OpenStreetMapGeocodingService implements GeocodingService {
           longitude: longitude,
         );
       } else {
-        throw ServerFailure('Failed to reverse geocode location: ${response.statusCode}');
+        throw ServerFailure(
+          'Failed to reverse geocode location: ${response.statusCode}',
+        );
       }
     } catch (e) {
       if (e is Failure) rethrow;

@@ -26,8 +26,9 @@ class HybridEngine {
 
     try {
       // Load and parse Train Matrix
-      final trainJson =
-          await rootBundle.loadString('assets/data/train_matrix.json');
+      final trainJson = await rootBundle.loadString(
+        'assets/data/train_matrix.json',
+      );
       final trainData = json.decode(trainJson) as Map<String, dynamic>;
       _trainFares = trainData.map((key, value) {
         final list = (value as List)
@@ -37,8 +38,9 @@ class HybridEngine {
       });
 
       // Load and parse Ferry Matrix
-      final ferryJson =
-          await rootBundle.loadString('assets/data/ferry_matrix.json');
+      final ferryJson = await rootBundle.loadString(
+        'assets/data/ferry_matrix.json',
+      );
       final ferryData = json.decode(ferryJson) as Map<String, dynamic>;
       if (ferryData['routes'] != null) {
         _ferryFares = (ferryData['routes'] as List)
@@ -81,7 +83,8 @@ class HybridEngine {
         transportMode == TransportMode.ferry) {
       if (originName == null || destinationName == null) {
         throw ArgumentError(
-            'Origin and Destination names are required for static fares.');
+          'Origin and Destination names are required for static fares.',
+        );
       }
       return calculateStaticFare(
         transportMode,
@@ -99,7 +102,8 @@ class HybridEngine {
           destLng == null ||
           formula == null) {
         throw ArgumentError(
-            'Coordinates and Formula are required for dynamic fares.');
+          'Coordinates and Formula are required for dynamic fares.',
+        );
       }
       return calculateDynamicFare(
         originLat: originLat,
@@ -161,16 +165,16 @@ class HybridEngine {
     // Calculate total fare for mixed passenger groups
     // Regular passengers pay full fare, discounted passengers pay 80% (20% off)
     double totalFare = 0.0;
-    
+
     if (regularCount > 0) {
       totalFare += baseFare * regularCount;
     }
-    
+
     if (discountedCount > 0) {
       final discountedFare = baseFare * 0.80; // 20% discount
       totalFare += discountedFare * discountedCount;
     }
-    
+
     // Fallback to old logic if using deprecated passengerCount parameter
     if (regularCount == 1 && discountedCount == 0 && passengerCount > 1) {
       // Legacy behavior: apply global discount setting
@@ -226,7 +230,7 @@ class HybridEngine {
       }
       // Maintain manual override if passed, though settings take precedence for specific logic above
       else if (isProvincial) {
-         totalFare *= 1.20;
+        totalFare *= 1.20;
       }
 
       // Traffic Factor: Multiplier for Taxis
@@ -251,7 +255,7 @@ class HybridEngine {
 
       // 6. Calculate total for mixed passenger groups if using new parameters
       double finalFare = 0.0;
-      
+
       // Use new logic only if user explicitly provided non-default passenger counts
       // Defaults are regularCount=1, discountedCount=0, so if either is different, use new logic
       if (regularCount != 1 || discountedCount != 0) {
@@ -279,11 +283,11 @@ class HybridEngine {
         if (discountType.isEligibleForDiscount) {
           totalFare = totalFare * discountType.fareMultiplier;
         }
-        
+
         if (formula.isPerHead && passengerCount > 1) {
           totalFare = totalFare * passengerCount;
         }
-        
+
         finalFare = totalFare;
       }
 

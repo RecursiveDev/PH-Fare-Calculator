@@ -66,7 +66,7 @@ void main() {
       latitude: 14.5995,
       longitude: 120.9842,
     );
-    
+
     final location2 = Location(
       name: 'Second Location',
       latitude: 10.3157,
@@ -75,7 +75,7 @@ void main() {
 
     await settingsService.saveLastLocation(location1);
     await settingsService.saveLastLocation(location2);
-    
+
     final retrieved = await settingsService.getLastLocation();
     expect(retrieved!.name, 'Second Location');
     expect(retrieved.latitude, 10.3157);

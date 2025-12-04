@@ -56,23 +56,26 @@ void main() {
       minimumFare: 13.0,
     );
 
-    test('HAPPY PATH: Discounted passenger type applies 20% reduction', () async {
-      // Setup: 5km route
-      mockRoutingService.distanceToReturn = 5000.0;
-      mockSettingsService.discountType = DiscountType.discounted;
+    test(
+      'HAPPY PATH: Discounted passenger type applies 20% reduction',
+      () async {
+        // Setup: 5km route
+        mockRoutingService.distanceToReturn = 5000.0;
+        mockSettingsService.discountType = DiscountType.discounted;
 
-      final fare = await hybridEngine.calculateDynamicFare(
-        originLat: 14.0,
-        originLng: 121.0,
-        destLat: 14.1,
-        destLng: 121.1,
-        formula: testFormula,
-      );
+        final fare = await hybridEngine.calculateDynamicFare(
+          originLat: 14.0,
+          originLng: 121.0,
+          destLat: 14.1,
+          destLng: 121.1,
+          formula: testFormula,
+        );
 
-      // Expected without discount: 13.0 + (5.75 * 1.80) = 23.35
-      // With 20% discount: 23.35 * 0.80 = 18.68
-      expect(fare, closeTo(18.68, 0.01));
-    });
+        // Expected without discount: 13.0 + (5.75 * 1.80) = 23.35
+        // With 20% discount: 23.35 * 0.80 = 18.68
+        expect(fare, closeTo(18.68, 0.01));
+      },
+    );
 
     test('HAPPY PATH: Standard user type has no discount', () async {
       mockRoutingService.distanceToReturn = 5000.0;
@@ -113,7 +116,10 @@ void main() {
 
     test('BOUNDARY: Discount type enum values are correct', () {
       expect(DiscountType.standard.displayName, 'Regular');
-      expect(DiscountType.discounted.displayName, 'Discounted (Student/Senior/PWD)');
+      expect(
+        DiscountType.discounted.displayName,
+        'Discounted (Student/Senior/PWD)',
+      );
 
       expect(DiscountType.standard.isEligibleForDiscount, false);
       expect(DiscountType.discounted.isEligibleForDiscount, true);
@@ -260,7 +266,10 @@ void main() {
       expect(find.text('Discounted (Student/Senior/PWD)'), findsOneWidget);
       // Check for subtitles
       expect(find.text('No discount'), findsOneWidget);
-      expect(find.text('20% discount (RA 11314, RA 9994, RA 7277)'), findsOneWidget);
+      expect(
+        find.text('20% discount (RA 11314, RA 9994, RA 7277)'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('HAPPY PATH: Selecting Discounted updates settings', (

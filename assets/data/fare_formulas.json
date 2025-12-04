@@ -5,6 +5,7 @@
       "sub_type": "Traditional",
       "base_fare": 14.00,
       "per_km": 1.75,
+      "is_per_head": true,
       "notes": "Standard formula. +20% toggle for Provinces."
     },
     {
@@ -12,6 +13,7 @@
       "sub_type": "Modern (PUJ)",
       "base_fare": 16.00,
       "per_km": 2.00,
+      "is_per_head": true,
       "notes": "Aircon standard. Higher base."
     },
     {
@@ -19,6 +21,7 @@
       "sub_type": "E-Jeepney (Electric)",
       "base_fare": 15.00,
       "per_km": 1.90,
+      "is_per_head": true,
       "notes": "Electric jeepney. Environmentally friendly with aircon."
     },
     {
@@ -26,6 +29,7 @@
       "sub_type": "Traditional",
       "base_fare": 13.00,
       "per_km": 2.20,
+      "is_per_head": true,
       "notes": "Provincial Buses: Min 15 + 2.20/km."
     },
     {
@@ -33,6 +37,7 @@
       "sub_type": "Aircon",
       "base_fare": 15.00,
       "per_km": 2.50,
+      "is_per_head": true,
       "notes": "City buses with aircon. User Input: Aircon toggle required."
     },
     {
@@ -40,6 +45,7 @@
       "sub_type": "Premium/Deluxe",
       "base_fare": 25.00,
       "per_km": 3.00,
+      "is_per_head": true,
       "notes": "Premium buses with WiFi, charging ports, and reclining seats."
     },
     {
@@ -47,6 +53,7 @@
       "sub_type": "P2P (Point-to-Point)",
       "base_fare": 50.00,
       "per_km": 2.00,
+      "is_per_head": true,
       "notes": "Fixed route express service. No standing passengers."
     },
     {
@@ -55,6 +62,7 @@
       "base_fare": 20.00,
       "per_km": 2.80,
       "minimum_fare": 25.00,
+      "is_per_head": true,
       "notes": "Inter-provincial routes. Minimum fare applies for short trips."
     },
     {
@@ -62,6 +70,7 @@
       "sub_type": "White (Regular)",
       "base_fare": 45.00,
       "per_km": 13.50,
+      "is_per_head": false,
       "notes": "Formula: Flagdown + (Dist/300m * 4). Includes wait time buffer."
     },
     {
@@ -69,6 +78,7 @@
       "sub_type": "Yellow (Airport)",
       "base_fare": 75.00,
       "per_km": 20.00,
+      "is_per_head": false,
       "notes": "Higher flagdown & rate. Default if Origin = Airport."
     },
     {
@@ -76,6 +86,7 @@
       "sub_type": "Premium (GrabCar/Black)",
       "base_fare": 55.00,
       "per_km": 15.00,
+      "is_per_head": false,
       "notes": "App-based premium taxi service. Surge pricing may apply."
     },
     {
@@ -83,6 +94,7 @@
       "sub_type": "UV Express",
       "base_fare": 20.00,
       "per_km": 3.00,
+      "is_per_head": true,
       "notes": "Point-to-Point nature implies higher per-km rate."
     },
     {
@@ -90,6 +102,7 @@
       "sub_type": "FX/AUV",
       "base_fare": 25.00,
       "per_km": 3.50,
+      "is_per_head": true,
       "notes": "Air-conditioned utility vehicle. Common in Metro Manila."
     },
     {
@@ -97,6 +110,7 @@
       "sub_type": "Local/Special",
       "base_fare": 0.00,
       "per_km": 0.00,
+      "is_per_head": false,
       "notes": "Fares are negotiated (Pakyaw). Expect ₱20-50 per km. Highly variable by LGU."
     },
     {
@@ -104,6 +118,7 @@
       "sub_type": "Metered",
       "base_fare": 15.00,
       "per_km": 5.00,
+      "is_per_head": false,
       "notes": "Some areas use metered tricycles. Rates vary by municipality."
     },
     {
@@ -111,6 +126,7 @@
       "sub_type": "Habal-Habal",
       "base_fare": 20.00,
       "per_km": 8.00,
+      "is_per_head": true,
       "notes": "Motorcycle taxi. Common in provinces and rural areas."
     },
     {
@@ -118,6 +134,7 @@
       "sub_type": "App-based (Angkas/JoyRide)",
       "base_fare": 25.00,
       "per_km": 10.00,
+      "is_per_head": true,
       "notes": "Licensed motorcycle taxi service via app. Metro Manila pilot."
     },
     {
@@ -126,6 +143,7 @@
       "base_fare": 13.00,
       "per_km": 1.00,
       "minimum_fare": 13.00,
+      "is_per_head": true,
       "notes": "Distance-based. Max ₱28 (North Ave to Taft). Beep card discount available."
     },
     {
@@ -134,6 +152,7 @@
       "base_fare": 15.00,
       "per_km": 1.00,
       "minimum_fare": 15.00,
+      "is_per_head": true,
       "notes": "Distance-based. Max ₱35 (Baclaran to Roosevelt). Beep card discount available."
     },
     {
@@ -142,6 +161,7 @@
       "base_fare": 15.00,
       "per_km": 1.00,
       "minimum_fare": 15.00,
+      "is_per_head": true,
       "notes": "Distance-based. Max ₱25 (Antipolo to Recto). Beep card discount available."
     },
     {
@@ -150,6 +170,7 @@
       "base_fare": 20.00,
       "per_km": 1.50,
       "minimum_fare": 20.00,
+      "is_per_head": true,
       "notes": "Philippine National Railways. Tutuban to Alabang route."
     },
     {
@@ -158,6 +179,7 @@
       "base_fare": 50.00,
       "per_km": 2.00,
       "minimum_fare": 50.00,
+      "is_per_head": true,
       "notes": "Long-distance PNR service. Naga-Legazpi route."
     },
     {
@@ -165,6 +187,7 @@
       "sub_type": "BRT (Bus Rapid Transit)",
       "base_fare": 0.00,
       "per_km": 0.00,
+      "is_per_head": true,
       "notes": "Free service along EDSA. Government-subsidized."
     },
     {
@@ -172,6 +195,7 @@
       "sub_type": "Bicycle/Padyak",
       "base_fare": 10.00,
       "per_km": 5.00,
+      "is_per_head": false,
       "notes": "Non-motorized. Rates negotiable. Common in residential areas."
     },
     {
@@ -179,6 +203,7 @@
       "sub_type": "Motorized Sidecar",
       "base_fare": 15.00,
       "per_km": 6.00,
+      "is_per_head": false,
       "notes": "Common in rural/agricultural areas. Improvised transport."
     }
   ]

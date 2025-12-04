@@ -144,7 +144,10 @@ void main() {
       final results = <FareResult>[];
 
       // Sort empty list (should not throw)
-      expect(() => results.sort((a, b) => a.fare.compareTo(b.fare)), returnsNormally);
+      expect(
+        () => results.sort((a, b) => a.fare.compareTo(b.fare)),
+        returnsNormally,
+      );
 
       // Marking logic should handle empty list
       if (results.isNotEmpty) {

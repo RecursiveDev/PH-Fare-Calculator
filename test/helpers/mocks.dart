@@ -147,7 +147,10 @@ class MockGeocodingService implements GeocodingService {
   }
 
   @override
-  Future<Location> getAddressFromLatLng(double latitude, double longitude) async {
+  Future<Location> getAddressFromLatLng(
+    double latitude,
+    double longitude,
+  ) async {
     return addressFromLatLngToReturn ??
         Location(
           name: 'Mock Address',

@@ -2,12 +2,7 @@ import 'package:injectable/injectable.dart';
 import '../models/transport_mode.dart';
 import '../models/fare_result.dart';
 
-enum SortCriteria {
-  priceAsc,
-  priceDesc,
-  durationAsc,
-  durationDesc,
-}
+enum SortCriteria { priceAsc, priceDesc, durationAsc, durationDesc }
 
 @lazySingleton
 class FareComparisonService {
@@ -52,7 +47,7 @@ class FareComparisonService {
     if (isMetroManila) {
       // Trains are mostly relevant in Metro Manila
       if (distanceInKm > 2.0) {
-         recommendedModes.add(TransportMode.train);
+        recommendedModes.add(TransportMode.train);
       }
       // Ferries (Pasig River) - very specific, added as option if in MM
       recommendedModes.add(TransportMode.ferry);
@@ -72,12 +67,9 @@ class FareComparisonService {
   /// [criteria]: The sorting criteria (price or duration, ascending or descending).
   ///
   /// Returns a new sorted list of FareResult objects.
-  List<FareResult> sortFares(
-    List<FareResult> results,
-    SortCriteria criteria,
-  ) {
+  List<FareResult> sortFares(List<FareResult> results, SortCriteria criteria) {
     final sortedResults = List<FareResult>.from(results);
-    
+
     switch (criteria) {
       case SortCriteria.priceAsc:
         sortedResults.sort((a, b) => a.totalFare.compareTo(b.totalFare));
@@ -88,12 +80,16 @@ class FareComparisonService {
       case SortCriteria.durationAsc:
         // Note: Duration sorting would require duration data in FareResult
         // For now, we'll use the same logic as price or throw
-        throw UnimplementedError('Duration sorting requires duration data in FareResult');
+        throw UnimplementedError(
+          'Duration sorting requires duration data in FareResult',
+        );
       case SortCriteria.durationDesc:
         // Note: Duration sorting would require duration data in FareResult
-        throw UnimplementedError('Duration sorting requires duration data in FareResult');
+        throw UnimplementedError(
+          'Duration sorting requires duration data in FareResult',
+        );
     }
-    
+
     return sortedResults;
   }
 

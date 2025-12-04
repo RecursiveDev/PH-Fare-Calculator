@@ -46,7 +46,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               const SizedBox(height: 48),
               Text(
                 AppLocalizations.of(context)!.selectLanguage,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -63,15 +66,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           child: currentLocale.languageCode == 'en'
                               ? FilledButton(
                                   onPressed: () {
-                                    getIt<SettingsService>()
-                                        .setLocale(const Locale('en'));
+                                    getIt<SettingsService>().setLocale(
+                                      const Locale('en'),
+                                    );
                                   },
                                   child: const Text('English'),
                                 )
                               : OutlinedButton(
                                   onPressed: () {
-                                    getIt<SettingsService>()
-                                        .setLocale(const Locale('en'));
+                                    getIt<SettingsService>().setLocale(
+                                      const Locale('en'),
+                                    );
                                   },
                                   child: const Text('English'),
                                 ),
@@ -85,15 +90,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           child: currentLocale.languageCode == 'tl'
                               ? FilledButton(
                                   onPressed: () {
-                                    getIt<SettingsService>()
-                                        .setLocale(const Locale('tl'));
+                                    getIt<SettingsService>().setLocale(
+                                      const Locale('tl'),
+                                    );
                                   },
                                   child: const Text('Tagalog'),
                                 )
                               : OutlinedButton(
                                   onPressed: () {
-                                    getIt<SettingsService>()
-                                        .setLocale(const Locale('tl'));
+                                    getIt<SettingsService>().setLocale(
+                                      const Locale('tl'),
+                                    );
                                   },
                                   child: const Text('Tagalog'),
                                 ),
@@ -106,10 +113,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               const Spacer(),
               Text(
                 AppLocalizations.of(context)!.disclaimer,
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.grey, fontSize: 12),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),

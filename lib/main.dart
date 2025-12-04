@@ -13,7 +13,7 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   final isHighContrast = prefs.getBool('isHighContrastEnabled') ?? false;
   final languageCode = prefs.getString('locale') ?? 'en';
-  
+
   SettingsService.highContrastNotifier.value = isHighContrast;
   SettingsService.localeNotifier.value = Locale(languageCode);
 

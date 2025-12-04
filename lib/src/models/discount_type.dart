@@ -4,7 +4,7 @@
 enum DiscountType {
   /// Standard fare - no discount applied
   standard,
-  
+
   /// Discounted fare - 20% off
   /// Applies to Students (RA 11314), Senior Citizens (RA 9994), and PWD (RA 7277)
   discounted,
@@ -21,12 +21,12 @@ extension DiscountTypeExtension on DiscountType {
         return 'Discounted (Student/Senior/PWD)';
     }
   }
-  
+
   /// Returns true if this discount type is eligible for the 20% fare discount
   bool get isEligibleForDiscount {
     return this == DiscountType.discounted;
   }
-  
+
   /// Returns the discount multiplier (0.80 for 20% discount, 1.0 for no discount)
   double get fareMultiplier {
     return isEligibleForDiscount ? 0.80 : 1.0;

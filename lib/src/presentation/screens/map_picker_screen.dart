@@ -6,7 +6,7 @@ import 'package:latlong2/latlong.dart';
 class MapPickerScreen extends StatefulWidget {
   /// Initial location to center the map on
   final LatLng? initialLocation;
-  
+
   /// Title for the app bar
   final String title;
 
@@ -54,8 +54,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final initialCenter = widget.initialLocation ?? const LatLng(14.5995, 120.9842);
-    
+    final initialCenter =
+        widget.initialLocation ?? const LatLng(14.5995, 120.9842);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),

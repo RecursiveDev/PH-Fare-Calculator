@@ -20,7 +20,7 @@ class FareResultAdapter extends TypeAdapter<FareResult> {
       transportMode: fields[0] as String,
       fare: fields[1] as double,
       indicatorLevel: fields[2] as IndicatorLevel,
-      isRecommended: fields[3] as bool,
+      isRecommended: fields[3] == null ? false : fields[3] as bool,
       passengerCount: fields[4] == null ? 1 : fields[4] as int,
       totalFare: fields[5] == null ? 0.0 : fields[5] as double,
     );

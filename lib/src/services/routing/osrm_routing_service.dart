@@ -43,18 +43,21 @@ class OsrmRoutingService implements RoutingService {
           final route = data['routes'][0];
           final distance = (route['distance'] as num).toDouble();
           final duration = (route['duration'] as num?)?.toDouble();
-          
+
           // Parse geometry from GeoJSON format
           final List<LatLng> geometry = [];
-          if (route['geometry'] != null && route['geometry']['coordinates'] != null) {
+          if (route['geometry'] != null &&
+              route['geometry']['coordinates'] != null) {
             final coordinates = route['geometry']['coordinates'] as List;
             for (final coord in coordinates) {
               if (coord is List && coord.length >= 2) {
                 // GeoJSON format is [longitude, latitude]
-                geometry.add(LatLng(
-                  (coord[1] as num).toDouble(),
-                  (coord[0] as num).toDouble(),
-                ));
+                geometry.add(
+                  LatLng(
+                    (coord[1] as num).toDouble(),
+                    (coord[0] as num).toDouble(),
+                  ),
+                );
               }
             }
           }

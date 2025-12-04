@@ -6,6 +6,8 @@ class FareResultCard extends StatelessWidget {
   final double fare;
   final IndicatorLevel indicatorLevel;
   final bool isRecommended;
+  final int passengerCount;
+  final double totalFare;
 
   const FareResultCard({
     super.key,
@@ -13,6 +15,8 @@ class FareResultCard extends StatelessWidget {
     required this.fare,
     required this.indicatorLevel,
     this.isRecommended = false,
+    this.passengerCount = 1,
+    required this.totalFare,
   });
 
   Color _getColor(IndicatorLevel level) {
@@ -29,9 +33,12 @@ class FareResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _getColor(indicatorLevel);
+    final displayFare = totalFare;
+    final hasMultiplePassengers = passengerCount > 1;
 
     return Semantics(
-      label: 'Fare estimate for $transportMode is ${fare.toStringAsFixed(2)} pesos. Traffic level: ${indicatorLevel.name}.${isRecommended ? ' Best Value option.' : ''}',
+      label:
+          'Fare estimate for $transportMode is ${displayFare.toStringAsFixed(2)} pesos${hasMultiplePassengers ? ' for $passengerCount passengers' : ''}. Traffic level: ${indicatorLevel.name}.${isRecommended ? ' Best Value option.' : ''}',
       child: Card(
         elevation: isRecommended ? 8 : 4,
         shape: RoundedRectangleBorder(
@@ -51,11 +58,7 @@ class FareResultCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.star,
-                      color: Colors.amber[700],
-                      size: 20,
-                    ),
+                    Icon(Icons.star, color: Colors.amber[700], size: 20),
                     const SizedBox(width: 6),
                     Text(
                       'BEST VALUE',
@@ -67,11 +70,7 @@ class FareResultCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Icon(
-                      Icons.star,
-                      color: Colors.amber[700],
-                      size: 20,
-                    ),
+                    Icon(Icons.star, color: Colors.amber[700], size: 20),
                   ],
                 ),
                 const SizedBox(height: 12.0),
@@ -84,12 +83,23 @@ class FareResultCard extends StatelessWidget {
               ),
               const SizedBox(height: 8.0),
               Text(
-                '₱ ${fare.toStringAsFixed(2)}',
+                '₱ ${displayFare.toStringAsFixed(2)}',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: color,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              if (hasMultiplePassengers) ...[
+                const SizedBox(height: 4.0),
+                Text(
+                  '$passengerCount pax',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ],
           ),
         ),

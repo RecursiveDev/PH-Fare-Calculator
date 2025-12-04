@@ -20,7 +20,7 @@ class FareResult {
   final double fare;
   @HiveField(2)
   final IndicatorLevel indicatorLevel;
-  @HiveField(3)
+  @HiveField(3, defaultValue: false)
   final bool isRecommended;
 
   @HiveField(4, defaultValue: 1)

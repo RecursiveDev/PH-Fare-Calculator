@@ -41,7 +41,8 @@ class _MainScreenState extends State<MainScreen> {
   final FareRepository _fareRepository = getIt<FareRepository>();
   final RoutingService _routingService = getIt<RoutingService>();
   final SettingsService _settingsService = getIt<SettingsService>();
-  final FareComparisonService _fareComparisonService = getIt<FareComparisonService>();
+  final FareComparisonService _fareComparisonService =
+      getIt<FareComparisonService>();
   List<FareFormula> _availableFormulas = [];
   bool _isLoading = true;
 
@@ -62,7 +63,7 @@ class _MainScreenState extends State<MainScreen> {
   int _regularPassengers = 1;
   int _discountedPassengers = 0;
   SortCriteria _sortCriteria = SortCriteria.priceAsc;
-  
+
   // Text controller for origin field
   final TextEditingController _originTextController = TextEditingController();
 
@@ -83,18 +84,18 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _initializeData() async {
     // Data is already seeded in Splash Screen
     final formulas = await _fareRepository.getAllFormulas();
-    
+
     // Load last known location if available
     final lastLocation = await _settingsService.getLastLocation();
-    
+
     // Check if user has set their discount type
     final hasSetDiscountType = await _settingsService.hasSetDiscountType();
-    
+
     if (mounted) {
       setState(() {
         _availableFormulas = formulas;
         _isLoading = false;
-        
+
         // Auto-fill origin if last location exists
         if (lastLocation != null) {
           _originLocation = lastLocation;
@@ -102,7 +103,7 @@ class _MainScreenState extends State<MainScreen> {
           _originTextController.text = lastLocation.name;
         }
       });
-      
+
       // Show first-time passenger type prompt if not set
       if (!hasSetDiscountType) {
         _showFirstTimePassengerTypePrompt();
@@ -114,9 +115,9 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _showFirstTimePassengerTypePrompt() async {
     // Use a short delay to ensure the widget is fully built
     await Future.delayed(const Duration(milliseconds: 300));
-    
+
     if (!mounted) return;
-    
+
     await showDialog(
       context: context,
       barrierDismissible: false,
@@ -141,7 +142,9 @@ class _MainScreenState extends State<MainScreen> {
           actions: [
             TextButton(
               onPressed: () async {
-                await _settingsService.setUserDiscountType(DiscountType.standard);
+                await _settingsService.setUserDiscountType(
+                  DiscountType.standard,
+                );
                 if (mounted) {
                   Navigator.of(context).pop();
                 }
@@ -150,7 +153,9 @@ class _MainScreenState extends State<MainScreen> {
             ),
             TextButton(
               onPressed: () async {
-                await _settingsService.setUserDiscountType(DiscountType.discounted);
+                await _settingsService.setUserDiscountType(
+                  DiscountType.discounted,
+                );
                 if (mounted) {
                   Navigator.of(context).pop();
                 }
@@ -230,7 +235,10 @@ class _MainScreenState extends State<MainScreen> {
               onSelected: (Location location) {
                 setState(() {
                   _destinationLocation = location;
-                  _destinationLatLng = LatLng(location.latitude, location.longitude);
+                  _destinationLatLng = LatLng(
+                    location.latitude,
+                    location.longitude,
+                  );
                   _resetResult();
                 });
                 // Trigger route calculation if both locations are selected
@@ -309,6 +317,8 @@ class _MainScreenState extends State<MainScreen> {
                     fare: result.totalFare,
                     indicatorLevel: result.indicatorLevel,
                     isRecommended: result.isRecommended,
+                    passengerCount: result.passengerCount,
+                    totalFare: result.totalFare,
                   );
                 },
               ),
@@ -321,7 +331,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildPassengerCountSelector() {
     final totalPassengers = _regularPassengers + _discountedPassengers;
-    
+
     return Card(
       elevation: 2,
       child: InkWell(
@@ -342,7 +352,10 @@ class _MainScreenState extends State<MainScreen> {
                     children: [
                       Text(
                         '$totalPassengers',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const Icon(Icons.edit, size: 18, color: Colors.grey),
@@ -401,14 +414,20 @@ class _MainScreenState extends State<MainScreen> {
                                 : null,
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey.shade300),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               '$tempRegular',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           IconButton(
@@ -440,7 +459,10 @@ class _MainScreenState extends State<MainScreen> {
                             ),
                             Text(
                               '(Student/Senior/PWD - 20% off)',
-                              style: TextStyle(fontSize: 11, color: Colors.grey),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
                             ),
                           ],
                         ),
@@ -458,14 +480,20 @@ class _MainScreenState extends State<MainScreen> {
                                 : null,
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey.shade300),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               '$tempDiscounted',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           IconButton(
@@ -492,7 +520,11 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline, size: 20, color: Colors.blue[700]),
+                        Icon(
+                          Icons.info_outline,
+                          size: 20,
+                          color: Colors.blue[700],
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -523,7 +555,8 @@ class _MainScreenState extends State<MainScreen> {
                             _regularPassengers = tempRegular;
                             _discountedPassengers = tempDiscounted;
                             _passengerCount = tempRegular + tempDiscounted;
-                            if (_originLocation != null && _destinationLocation != null) {
+                            if (_originLocation != null &&
+                                _destinationLocation != null) {
                               _calculateFare();
                             }
                           });
@@ -559,7 +592,10 @@ class _MainScreenState extends State<MainScreen> {
             _sortCriteria = newValue;
             // Re-sort existing results
             if (_fareResults.isNotEmpty) {
-              _fareResults = _fareComparisonService.sortFares(_fareResults, _sortCriteria);
+              _fareResults = _fareComparisonService.sortFares(
+                _fareResults,
+                _sortCriteria,
+              );
               // Update the recommended flag for the first item
               _updateRecommendedFlag();
             }
@@ -571,7 +607,7 @@ class _MainScreenState extends State<MainScreen> {
 
   void _updateRecommendedFlag() {
     if (_fareResults.isEmpty) return;
-    
+
     // Remove recommendation from all results first
     _fareResults = _fareResults.map((result) {
       return FareResult(
@@ -583,7 +619,7 @@ class _MainScreenState extends State<MainScreen> {
         totalFare: result.totalFare,
       );
     }).toList();
-    
+
     // Mark the first one (based on current sort) as recommended
     _fareResults[0] = FareResult(
       transportMode: _fareResults[0].transportMode,
@@ -602,27 +638,33 @@ class _MainScreenState extends State<MainScreen> {
     TextEditingController? textController,
   }) {
     final isOrigin = isOriginField;
-    
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return Autocomplete<Location>(
           displayStringForOption: (Location option) => option.name,
-          initialValue: textController != null ? TextEditingValue(text: textController.text) : null,
+          initialValue: textController != null
+              ? TextEditingValue(text: textController.text)
+              : null,
           optionsBuilder: (TextEditingValue textEditingValue) async {
             if (textEditingValue.text.trim().isEmpty) {
               return const Iterable<Location>.empty();
             }
-            
+
             // Debounce logic: cancel previous timer and create new one
-            final debounceTimer = isOrigin ? _originDebounceTimer : _destinationDebounceTimer;
+            final debounceTimer = isOrigin
+                ? _originDebounceTimer
+                : _destinationDebounceTimer;
             debounceTimer?.cancel();
-            
+
             // Create a completer to return results after debounce
             final completer = Completer<List<Location>>();
-            
+
             final newTimer = Timer(const Duration(milliseconds: 800), () async {
               try {
-                final locations = await _geocodingService.getLocations(textEditingValue.text);
+                final locations = await _geocodingService.getLocations(
+                  textEditingValue.text,
+                );
                 if (!completer.isCompleted) {
                   completer.complete(locations);
                 }
@@ -632,13 +674,13 @@ class _MainScreenState extends State<MainScreen> {
                 }
               }
             });
-            
+
             if (isOrigin) {
               _originDebounceTimer = newTimer;
             } else {
               _destinationDebounceTimer = newTimer;
             }
-            
+
             return completer.future;
           },
           onSelected: onSelected,
@@ -676,12 +718,19 @@ class _MainScreenState extends State<MainScreen> {
                             IconButton(
                               icon: const Icon(Icons.my_location),
                               tooltip: 'Use my current location',
-                              onPressed: () => _useCurrentLocation(textEditingController, onSelected),
+                              onPressed: () => _useCurrentLocation(
+                                textEditingController,
+                                onSelected,
+                              ),
                             ),
                           IconButton(
                             icon: const Icon(Icons.map),
                             tooltip: 'Select from map',
-                            onPressed: () => _openMapPicker(isOriginField, textEditingController, onSelected),
+                            onPressed: () => _openMapPicker(
+                              isOriginField,
+                              textEditingController,
+                              onSelected,
+                            ),
                           ),
                         ],
                       ),
@@ -730,10 +779,8 @@ class _MainScreenState extends State<MainScreen> {
     final LatLng? selectedLatLng = await Navigator.push<LatLng>(
       context,
       MaterialPageRoute(
-        builder: (context) => MapPickerScreen(
-          initialLocation: initialLocation,
-          title: title,
-        ),
+        builder: (context) =>
+            MapPickerScreen(initialLocation: initialLocation, title: title),
       ),
     );
 
@@ -754,10 +801,10 @@ class _MainScreenState extends State<MainScreen> {
         if (mounted) {
           // Update the text field
           controller.text = location.name;
-          
+
           // Call the onSelected callback to update state
           onSelected(location);
-          
+
           setState(() {
             _isLoadingLocation = false;
           });
@@ -765,16 +812,16 @@ class _MainScreenState extends State<MainScreen> {
       } catch (e) {
         if (mounted) {
           String errorMsg = 'Failed to get address for selected location.';
-          
+
           if (e is Failure) {
             errorMsg = e.message;
           }
-          
+
           setState(() {
             _isLoadingLocation = false;
             _errorMessage = errorMsg;
           });
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(errorMsg),
@@ -788,7 +835,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _resetResult() {
-    if (_fareResults.isNotEmpty || _errorMessage != null || _routePoints.isNotEmpty) {
+    if (_fareResults.isNotEmpty ||
+        _errorMessage != null ||
+        _routePoints.isNotEmpty) {
       setState(() {
         _fareResults = [];
         _errorMessage = null;
@@ -856,7 +905,7 @@ class _MainScreenState extends State<MainScreen> {
       if (_originLocation != null) {
         await _settingsService.saveLastLocation(_originLocation!);
       }
-      
+
       final List<FareResult> results = [];
       final trafficFactor = await _settingsService.getTrafficFactor();
       final hiddenModes = await _settingsService.getHiddenTransportModes();
@@ -870,7 +919,8 @@ class _MainScreenState extends State<MainScreen> {
       // If no visible formulas, show error
       if (visibleFormulas.isEmpty) {
         setState(() {
-          _errorMessage = 'No transport modes enabled. Please enable at least one mode in Settings.';
+          _errorMessage =
+              'No transport modes enabled. Please enable at least one mode in Settings.';
         });
         return;
       }
@@ -879,7 +929,9 @@ class _MainScreenState extends State<MainScreen> {
       for (final formula in visibleFormulas) {
         // Skip if formula is invalid (zero base fare and per km rate)
         if (formula.baseFare == 0.0 && formula.perKmRate == 0.0) {
-          debugPrint('Skipping invalid formula for ${formula.mode} (${formula.subType})');
+          debugPrint(
+            'Skipping invalid formula for ${formula.mode} (${formula.subType})',
+          );
           continue;
         }
 
@@ -894,11 +946,15 @@ class _MainScreenState extends State<MainScreen> {
           discountedCount: _discountedPassengers,
         );
 
-        final indicator = _hybridEngine.getIndicatorLevel(trafficFactor.name);
+        // Traffic indicator should ONLY apply to Taxi mode
+        // All other modes should always show standard (green) indicator
+        final indicator = formula.mode == 'Taxi'
+            ? _hybridEngine.getIndicatorLevel(trafficFactor.name)
+            : IndicatorLevel.standard;
 
         // Calculate total fare for display
         final totalFare = fare;
-        
+
         results.add(
           FareResult(
             transportMode: '${formula.mode} (${formula.subType})',
@@ -912,7 +968,10 @@ class _MainScreenState extends State<MainScreen> {
       }
 
       // Sort results using FareComparisonService
-      final sortedResults = _fareComparisonService.sortFares(results, _sortCriteria);
+      final sortedResults = _fareComparisonService.sortFares(
+        results,
+        _sortCriteria,
+      );
 
       // Mark the first option (based on sort criteria) as recommended
       if (sortedResults.isNotEmpty) {
@@ -964,11 +1023,11 @@ class _MainScreenState extends State<MainScreen> {
 
     try {
       final location = await _geocodingService.getCurrentLocationAddress();
-      
+
       if (mounted) {
         controller.text = location.name;
         onSelected(location);
-        
+
         setState(() {
           _isLoadingLocation = false;
         });
@@ -976,16 +1035,16 @@ class _MainScreenState extends State<MainScreen> {
     } catch (e) {
       if (mounted) {
         String errorMsg = 'Failed to get current location.';
-        
+
         if (e is Failure) {
           errorMsg = e.message;
         }
-        
+
         setState(() {
           _isLoadingLocation = false;
           _errorMessage = errorMsg;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMsg),

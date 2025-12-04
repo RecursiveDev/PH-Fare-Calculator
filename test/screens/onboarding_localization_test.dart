@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 // Create a real SettingsService to test the locale change logic
 class FakeSettingsService implements SettingsService {
   Locale _locale = const Locale('en');
-  
+
   @override
   Future<Locale> getLocale() async => _locale;
 
@@ -27,26 +27,34 @@ class FakeSettingsService implements SettingsService {
   @override
   Future<bool> getProvincialMode() async => provincialMode;
   @override
-  Future<void> setProvincialMode(bool value) async { provincialMode = value; }
-  
+  Future<void> setProvincialMode(bool value) async {
+    provincialMode = value;
+  }
+
   TrafficFactor trafficFactor = TrafficFactor.medium;
   @override
   Future<TrafficFactor> getTrafficFactor() async => trafficFactor;
   @override
-  Future<void> setTrafficFactor(TrafficFactor factor) async { trafficFactor = factor; }
-  
+  Future<void> setTrafficFactor(TrafficFactor factor) async {
+    trafficFactor = factor;
+  }
+
   bool highContrast = false;
   @override
   Future<bool> getHighContrastEnabled() async => highContrast;
   @override
-  Future<void> setHighContrastEnabled(bool value) async { highContrast = value; }
-  
+  Future<void> setHighContrastEnabled(bool value) async {
+    highContrast = value;
+  }
+
   DiscountType discountType = DiscountType.standard;
   @override
   Future<DiscountType> getUserDiscountType() async => discountType;
   @override
-  Future<void> setUserDiscountType(DiscountType type) async { discountType = type; }
-  
+  Future<void> setUserDiscountType(DiscountType type) async {
+    discountType = type;
+  }
+
   Set<String> hiddenTransportModes = {};
   @override
   Future<Set<String>> getHiddenTransportModes() async => hiddenTransportModes;
@@ -58,6 +66,7 @@ class FakeSettingsService implements SettingsService {
       hiddenTransportModes.remove(modeSubType);
     }
   }
+
   @override
   Future<bool> isTransportModeHidden(String mode, String subType) async {
     return hiddenTransportModes.contains('$mode::$subType');
@@ -68,6 +77,7 @@ class FakeSettingsService implements SettingsService {
   Future<void> saveLastLocation(Location location) async {
     lastLocation = location;
   }
+
   @override
   Future<Location?> getLastLocation() async {
     return lastLocation;
@@ -97,7 +107,7 @@ void main() {
   setUp(() async {
     await GetIt.instance.reset();
     SharedPreferences.setMockInitialValues({});
-    
+
     fakeSettingsService = FakeSettingsService();
     // Reset the static notifier
     SettingsService.localeNotifier.value = const Locale('en');
@@ -124,7 +134,9 @@ void main() {
     );
   }
 
-  testWidgets('OnboardingScreen switches language when Tagalog is tapped', (tester) async {
+  testWidgets('OnboardingScreen switches language when Tagalog is tapped', (
+    tester,
+  ) async {
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
 
@@ -139,13 +151,16 @@ void main() {
     // 3. Verify Tagalog Text
     // Note: Adjust expectations based on actual arb file content if different
     // Assuming standard translations:
-    expect(find.text('Maligayang pagdating sa PH Fare Calculator'), findsOneWidget);
+    expect(
+      find.text('Maligayang pagdating sa PH Fare Calculator'),
+      findsOneWidget,
+    );
     expect(find.text('Pumili ng Wika'), findsOneWidget);
-    
+
     // 4. Tap English Button
     await tester.tap(find.text('English'));
     await tester.pumpAndSettle();
-    
+
     // 5. Verify English again
     expect(find.text('Welcome to PH Fare Calculator'), findsOneWidget);
   });

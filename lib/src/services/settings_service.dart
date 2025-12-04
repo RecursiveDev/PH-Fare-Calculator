@@ -142,13 +142,13 @@ class SettingsService {
   Future<void> toggleTransportMode(String modeSubType, bool isHidden) async {
     final prefs = await SharedPreferences.getInstance();
     final hiddenModes = await getHiddenTransportModes();
-    
+
     if (isHidden) {
       hiddenModes.add(modeSubType);
     } else {
       hiddenModes.remove(modeSubType);
     }
-    
+
     await prefs.setStringList(_keyHiddenTransportModes, hiddenModes.toList());
   }
 
@@ -173,7 +173,7 @@ class SettingsService {
   Future<void> toggleMode(String modeId) async {
     final hiddenModes = await getHiddenTransportModes();
     final isCurrentlyHidden = hiddenModes.contains(modeId);
-    
+
     // Toggle the state
     await toggleTransportMode(modeId, !isCurrentlyHidden);
   }
@@ -197,10 +197,6 @@ class SettingsService {
       return null;
     }
 
-    return Location(
-      name: name,
-      latitude: latitude,
-      longitude: longitude,
-    );
+    return Location(name: name, latitude: latitude, longitude: longitude);
   }
 }

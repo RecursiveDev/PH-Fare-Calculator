@@ -21,7 +21,10 @@ import '../helpers/mocks.dart';
 // Create a mock for FareComparisonService since it's used in MainScreen
 class MockFareComparisonService implements FareComparisonService {
   @override
-  List<TransportMode> recommendModes({required double distanceInMeters, bool isMetroManila = true}) {
+  List<TransportMode> recommendModes({
+    required double distanceInMeters,
+    bool isMetroManila = true,
+  }) {
     return [];
   }
 
@@ -59,7 +62,7 @@ void main() {
 
     // Register mocks with GetIt
     final getIt = GetIt.instance;
-    
+
     getIt.registerSingleton<GeocodingService>(mockGeocodingService);
     getIt.registerSingleton<RoutingService>(mockRoutingService);
     getIt.registerSingleton<SettingsService>(mockSettingsService);
@@ -99,11 +102,13 @@ void main() {
   testWidgets('MainScreen renders correctly', (WidgetTester tester) async {
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pump(); // Initial build
-    
+
     // Wait for and dismiss the first-time passenger type prompt
-    await tester.pump(const Duration(milliseconds: 400)); // Wait for dialog delay
+    await tester.pump(
+      const Duration(milliseconds: 400),
+    ); // Wait for dialog delay
     await tester.pumpAndSettle();
-    
+
     // Dismiss the dialog by selecting Regular
     if (find.text('Welcome to PH Fare Estimator').evaluate().isNotEmpty) {
       await tester.tap(find.text('Regular'));
@@ -123,7 +128,7 @@ void main() {
     // Setup larger screen size to accommodate all UI elements
     tester.view.physicalSize = const Size(1200, 2000);
     tester.view.devicePixelRatio = 1.0;
-    
+
     // Setup data
     final origin = Location(name: 'Luneta', latitude: 14.58, longitude: 120.97);
     final destination = Location(
@@ -136,11 +141,13 @@ void main() {
 
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pump(); // Initial build
-    
+
     // Wait for and dismiss the first-time passenger type prompt
-    await tester.pump(const Duration(milliseconds: 400)); // Wait for dialog delay
+    await tester.pump(
+      const Duration(milliseconds: 400),
+    ); // Wait for dialog delay
     await tester.pumpAndSettle();
-    
+
     // Dismiss the dialog by selecting Regular
     if (find.text('Welcome to PH Fare Estimator').evaluate().isNotEmpty) {
       await tester.tap(find.text('Regular'));
@@ -162,7 +169,9 @@ void main() {
       find.widgetWithText(TextField, 'Destination'),
       'MOA',
     );
-    await tester.pump(const Duration(milliseconds: 900)); // wait for autocomplete debounce (800ms) + buffer
+    await tester.pump(
+      const Duration(milliseconds: 900),
+    ); // wait for autocomplete debounce (800ms) + buffer
     await tester.pumpAndSettle();
     await tester.tap(find.text('MOA').last);
     await tester.pumpAndSettle();
@@ -176,7 +185,7 @@ void main() {
     expect(find.textContaining('Could not calculate fare'), findsNothing);
 
     expect(find.byType(FareResultCard), findsWidgets);
-    
+
     // Reset view size
     addTearDown(() {
       tester.view.resetPhysicalSize();

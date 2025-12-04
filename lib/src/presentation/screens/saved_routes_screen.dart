@@ -45,21 +45,19 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Saved Routes'),
-      ),
+      appBar: AppBar(title: const Text('Saved Routes')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _savedRoutes.isEmpty
-              ? const Center(child: Text('No saved routes yet.'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: _savedRoutes.length,
-                  itemBuilder: (context, index) {
-                    final route = _savedRoutes[index];
-                    return _buildRouteCard(route);
-                  },
-                ),
+          ? const Center(child: Text('No saved routes yet.'))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: _savedRoutes.length,
+              itemBuilder: (context, index) {
+                final route = _savedRoutes[index];
+                return _buildRouteCard(route);
+              },
+            ),
     );
   }
 
@@ -97,6 +95,8 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
                     transportMode: result.transportMode,
                     fare: result.fare,
                     indicatorLevel: result.indicatorLevel,
+                    passengerCount: result.passengerCount,
+                    totalFare: result.totalFare,
                   ),
                 );
               }).toList(),

@@ -8,9 +8,7 @@ class OfflineMenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Offline Reference'),
-      ),
+      appBar: AppBar(title: const Text('Offline Reference')),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
@@ -74,8 +72,8 @@ class OfflineMenuScreen extends StatelessWidget {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8.0),
                     Text(

@@ -453,6 +453,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return Icons.pedal_bike;
       case TransportMode.uvExpress:
         return Icons.local_shipping;
+      case TransportMode.van:
+        return Icons.airport_shuttle;
+      case TransportMode.motorcycle:
+        return Icons.two_wheeler;
+      case TransportMode.edsaCarousel:
+        return Icons.directions_bus_filled;
+      case TransportMode.pedicab:
+        return Icons.directions_bike;
+      case TransportMode.kuliglig:
+        return Icons.agriculture;
     }
   }
 }
