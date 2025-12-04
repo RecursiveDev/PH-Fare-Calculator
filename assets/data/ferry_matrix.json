@@ -1,0 +1,280 @@
+{
+  "routes": [
+    {
+      "origin": "Batangas",
+      "destination": "Calapan",
+      "price": 500.00,
+      "operator": "Starlite Ferries"
+    },
+    {
+      "origin": "Batangas",
+      "destination": "Puerto Galera",
+      "price": 450.00,
+      "operator": "Si-Kat/Montenegro"
+    },
+    {
+      "origin": "Batangas",
+      "destination": "Romblon",
+      "price": 800.00,
+      "operator": "Montenegro Lines"
+    },
+    {
+      "origin": "Batangas",
+      "destination": "Boracay (Caticlan)",
+      "price": 1200.00,
+      "operator": "2GO Travel"
+    },
+    {
+      "origin": "Batangas",
+      "destination": "Odiongan",
+      "price": 750.00,
+      "operator": "Montenegro Lines"
+    },
+    {
+      "origin": "Manila",
+      "destination": "Coron",
+      "price": 2500.00,
+      "operator": "2GO Travel"
+    },
+    {
+      "origin": "Manila",
+      "destination": "Puerto Princesa",
+      "price": 2200.00,
+      "operator": "2GO Travel"
+    },
+    {
+      "origin": "Manila",
+      "destination": "Cebu",
+      "price": 1800.00,
+      "operator": "2GO Travel"
+    },
+    {
+      "origin": "Manila",
+      "destination": "Dumaguete",
+      "price": 1600.00,
+      "operator": "2GO Travel"
+    },
+    {
+      "origin": "Manila",
+      "destination": "Bacolod",
+      "price": 1500.00,
+      "operator": "2GO Travel"
+    },
+    {
+      "origin": "Manila",
+      "destination": "Iloilo",
+      "price": 1400.00,
+      "operator": "2GO Travel"
+    },
+    {
+      "origin": "Manila",
+      "destination": "Cagayan de Oro",
+      "price": 2000.00,
+      "operator": "2GO Travel"
+    },
+    {
+      "origin": "Manila",
+      "destination": "Davao",
+      "price": 2400.00,
+      "operator": "2GO Travel"
+    },
+    {
+      "origin": "Manila",
+      "destination": "General Santos",
+      "price": 2600.00,
+      "operator": "2GO Travel"
+    },
+    {
+      "origin": "Cebu",
+      "destination": "Tagbilaran",
+      "price": 800.00,
+      "operator": "OceanJet"
+    },
+    {
+      "origin": "Cebu",
+      "destination": "Tubigon",
+      "price": 650.00,
+      "operator": "Lite Shipping"
+    },
+    {
+      "origin": "Cebu",
+      "destination": "Dumaguete",
+      "price": 700.00,
+      "operator": "OceanJet"
+    },
+    {
+      "origin": "Cebu",
+      "destination": "Ormoc",
+      "price": 600.00,
+      "operator": "OceanJet"
+    },
+    {
+      "origin": "Cebu",
+      "destination": "Larena (Siquijor)",
+      "price": 900.00,
+      "operator": "OceanJet"
+    },
+    {
+      "origin": "Cebu",
+      "destination": "Bantayan",
+      "price": 500.00,
+      "operator": "Island Shipping"
+    },
+    {
+      "origin": "Cebu",
+      "destination": "Camotes",
+      "price": 450.00,
+      "operator": "Jomalia Shipping"
+    },
+    {
+      "origin": "Cebu",
+      "destination": "Surigao",
+      "price": 1200.00,
+      "operator": "Cokaliong"
+    },
+    {
+      "origin": "Cebu",
+      "destination": "Cagayan de Oro",
+      "price": 950.00,
+      "operator": "Cokaliong"
+    },
+    {
+      "origin": "Iloilo",
+      "destination": "Bacolod",
+      "price": 450.00,
+      "operator": "Weesam Express"
+    },
+    {
+      "origin": "Iloilo",
+      "destination": "Guimaras",
+      "price": 150.00,
+      "operator": "Jordan-Iloilo Ferry"
+    },
+    {
+      "origin": "Iloilo",
+      "destination": "Dumangas",
+      "price": 100.00,
+      "operator": "Local Ferry"
+    },
+    {
+      "origin": "Bacolod",
+      "destination": "Dumaguete",
+      "price": 650.00,
+      "operator": "Ceres Liner"
+    },
+    {
+      "origin": "Bacolod",
+      "destination": "Guimaras",
+      "price": 200.00,
+      "operator": "Local Ferry"
+    },
+    {
+      "origin": "Dumaguete",
+      "destination": "Siquijor",
+      "price": 300.00,
+      "operator": "Delta Fast Ferry"
+    },
+    {
+      "origin": "Dumaguete",
+      "destination": "Bohol (Tagbilaran)",
+      "price": 750.00,
+      "operator": "OceanJet"
+    },
+    {
+      "origin": "Zamboanga",
+      "destination": "Basilan",
+      "price": 250.00,
+      "operator": "Aleson Shipping"
+    },
+    {
+      "origin": "Zamboanga",
+      "destination": "Jolo",
+      "price": 400.00,
+      "operator": "Aleson Shipping"
+    },
+    {
+      "origin": "Zamboanga",
+      "destination": "Sandakan",
+      "price": 3500.00,
+      "operator": "Aleson Shipping"
+    },
+    {
+      "origin": "Jagna",
+      "destination": "Camiguin",
+      "price": 550.00,
+      "operator": "Lite Shipping"
+    },
+    {
+      "origin": "Bohol (Talibon)",
+      "destination": "Leyte",
+      "price": 400.00,
+      "operator": "Lite Shipping"
+    },
+    {
+      "origin": "Ormoc",
+      "destination": "Cebu",
+      "price": 600.00,
+      "operator": "SuperCat"
+    },
+    {
+      "origin": "Tacloban",
+      "destination": "Cebu",
+      "price": 750.00,
+      "operator": "SuperCat"
+    },
+    {
+      "origin": "Matnog (Sorsogon)",
+      "destination": "Allen (Samar)",
+      "price": 200.00,
+      "operator": "RORO Ferry"
+    },
+    {
+      "origin": "Lucena",
+      "destination": "Marinduque",
+      "price": 350.00,
+      "operator": "Montenegro Lines"
+    },
+    {
+      "origin": "Real (Quezon)",
+      "destination": "Polillo",
+      "price": 300.00,
+      "operator": "Local Ferry"
+    },
+    {
+      "origin": "Surigao",
+      "destination": "Siargao",
+      "price": 350.00,
+      "operator": "RORO Ferry"
+    },
+    {
+      "origin": "Davao",
+      "destination": "Samal Island",
+      "price": 100.00,
+      "operator": "Local Ferry"
+    },
+    {
+      "origin": "Davao",
+      "destination": "General Santos",
+      "price": 800.00,
+      "operator": "Trans-Asia Shipping"
+    },
+    {
+      "origin": "El Nido",
+      "destination": "Coron",
+      "price": 1500.00,
+      "operator": "Montenegro Lines"
+    },
+    {
+      "origin": "Puerto Princesa",
+      "destination": "El Nido",
+      "price": 1200.00,
+      "operator": "Montenegro Lines"
+    },
+    {
+      "origin": "Coron",
+      "destination": "El Nido",
+      "price": 1500.00,
+      "operator": "Montenegro Lines"
+    }
+  ]
+}
