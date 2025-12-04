@@ -114,6 +114,18 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
+      - name: Create .env file for CI
+        run: |
+          # Create empty .env file required by pubspec.yaml assets
+          touch .env
+          echo "Created .env placeholder for CI build"
+
+      - name: Generate code with build_runner
+        run: |
+          # Generate Hive adapters and other generated files
+          dart run build_runner build --delete-conflicting-outputs
+          echo "Code generation completed"
+
       - name: Run Flutter analyze
         run: flutter analyze --no-fatal-infos
         continue-on-error: true  # Don't fail on lint warnings
@@ -122,19 +134,40 @@ jobs:
         run: flutter test
         continue-on-error: true  # Continue even if tests fail (for now)
 
-      - name: Build release APK
+      - name: Build production release APKs (per-ABI)
         run: |
           flutter build apk --release \
+            --split-per-abi \
+            --obfuscate \
+            --split-debug-info=build/debug-info \
             --build-name=${{ steps.version.outputs.version_name }} \
             --build-number=${{ steps.version.outputs.build_number }}
 
-      - name: Rename APK with version info
+      - name: Rename APKs with version info
+        id: apk_files
         run: |
-          mv build/app/outputs/flutter-apk/app-release.apk \
-             build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}
+          VERSION="${{ steps.version.outputs.version_name }}"
+          BUILD="${{ steps.version.outputs.build_number }}"
+          SHA="${{ steps.version.outputs.short_sha }}"
+          APK_DIR="build/app/outputs/flutter-apk"
           
-          echo "APK renamed to: ${{ steps.version.outputs.apk_name }}"
-          ls -la build/app/outputs/flutter-apk/
+          # Rename each architecture-specific APK
+          mv "${APK_DIR}/app-arm64-v8a-release.apk" \
+             "${APK_DIR}/ph-fare-calculator-v${VERSION}+${BUILD}-${SHA}-arm64-v8a.apk"
+          
+          mv "${APK_DIR}/app-armeabi-v7a-release.apk" \
+             "${APK_DIR}/ph-fare-calculator-v${VERSION}+${BUILD}-${SHA}-armeabi-v7a.apk"
+          
+          mv "${APK_DIR}/app-x86_64-release.apk" \
+             "${APK_DIR}/ph-fare-calculator-v${VERSION}+${BUILD}-${SHA}-x86_64.apk"
+          
+          # Output APK filenames for later steps
+          echo "apk_arm64=ph-fare-calculator-v${VERSION}+${BUILD}-${SHA}-arm64-v8a.apk" >> $GITHUB_OUTPUT
+          echo "apk_armv7=ph-fare-calculator-v${VERSION}+${BUILD}-${SHA}-armeabi-v7a.apk" >> $GITHUB_OUTPUT
+          echo "apk_x86_64=ph-fare-calculator-v${VERSION}+${BUILD}-${SHA}-x86_64.apk" >> $GITHUB_OUTPUT
+          
+          echo "APKs renamed:"
+          ls -la "${APK_DIR}"/*.apk
 
       # ============================================
       # RELEASE
@@ -158,8 +191,11 @@ jobs:
           - **Workflow Run:** [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
           
           ### APK Details
-          - **Filename:** `${{ steps.version.outputs.apk_name }}`
-          - **Architecture:** Universal (arm64-v8a, armeabi-v7a, x86_64)
+          | Architecture | Filename |
+          |-------------|----------|
+          | **ARM64 (arm64-v8a)** | `${{ steps.apk_files.outputs.apk_arm64 }}` |
+          | **ARM32 (armeabi-v7a)** | `${{ steps.apk_files.outputs.apk_armv7 }}` |
+          | **x86_64** | `${{ steps.apk_files.outputs.apk_x86_64 }}` |
           
           ### Changes
           EOF
@@ -198,7 +234,9 @@ jobs:
           generate_release_notes: true  # Also include GitHub's auto-generated notes
           append_body: true  # Append our notes to GitHub's auto-generated ones
           files: |
-            build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}
+            build/app/outputs/flutter-apk/${{ steps.apk_files.outputs.apk_arm64 }}
+            build/app/outputs/flutter-apk/${{ steps.apk_files.outputs.apk_armv7 }}
+            build/app/outputs/flutter-apk/${{ steps.apk_files.outputs.apk_x86_64 }}
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -212,7 +250,7 @@ jobs:
           echo "| **Tag** | \`${{ steps.tag_check.outputs.unique_tag }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Version** | ${{ steps.version.outputs.version_name }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Build** | ${{ steps.version.outputs.build_number }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **APK** | \`${{ steps.version.outputs.apk_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **APKs** | arm64-v8a, armeabi-v7a, x86_64 |" >> $GITHUB_STEP_SUMMARY
           echo "| **Commit** | \`${{ steps.version.outputs.short_sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "📦 [View Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag_check.outputs.unique_tag }})" >> $GITHUB_STEP_SUMMARY
