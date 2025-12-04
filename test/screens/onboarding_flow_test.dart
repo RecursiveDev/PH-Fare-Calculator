@@ -111,10 +111,11 @@ void main() {
       ),
     );
 
-    expect(find.byType(FlutterLogo), findsOneWidget);
+    // The new splash screen uses a bus icon instead of FlutterLogo
+    expect(find.byIcon(Icons.directions_bus_rounded), findsOneWidget);
 
-    // Wait for 2 seconds delay
-    await tester.pump(const Duration(seconds: 2));
+    // Wait for 2.5 seconds delay (animation duration)
+    await tester.pump(const Duration(milliseconds: 2500));
     await tester.pumpAndSettle();
 
     expect(find.byType(OnboardingScreen), findsOneWidget);

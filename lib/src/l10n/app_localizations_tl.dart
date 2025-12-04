@@ -80,4 +80,27 @@ class AppLocalizationsTl extends AppLocalizations {
 
   @override
   String get trafficHighSubtitle => 'Mabigat na trapiko';
+
+  @override
+  String get skipButtonLabel => 'Laktawan';
+
+  @override
+  String get nextButton => 'Susunod';
+
+  @override
+  String get getStartedButton => 'Magsimula';
+
+  @override
+  String get onboardingKnowFareDescription =>
+      'Kalkulahin ang pamasahe para sa jeepney, bus, tren, at ferry sa buong Pilipinas.';
+
+  @override
+  String get onboardingWorkOfflineTitle => 'Magtrabaho Offline';
+
+  @override
+  String get onboardingWorkOfflineDescription =>
+      'Ma-access ang datos ng pamasahe kahit walang internet connection.';
+
+  @override
+  String get onboardingLanguageTitle => 'Pumili ng Wika';
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:ph_fare_calculator/src/core/theme/app_theme.dart';
 import 'package:ph_fare_calculator/src/l10n/app_localizations.dart';
 import 'package:ph_fare_calculator/src/presentation/screens/splash_screen.dart';
 import 'package:ph_fare_calculator/src/services/settings_service.dart';
@@ -25,46 +26,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lightTheme = ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      useMaterial3: true,
-    );
-
-    final darkTheme = ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: Colors.black,
-      colorScheme: const ColorScheme.dark(
-        primary: Colors.cyanAccent,
-        secondary: Colors.yellowAccent,
-        surface: Colors.black,
-        error: Colors.redAccent,
-      ),
-      textTheme: const TextTheme(
-        bodyMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        titleLarge: TextStyle(
-          color: Colors.cyanAccent,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      cardTheme: const CardThemeData(
-        color: Colors.black,
-        shape: RoundedRectangleBorder(
-          side: BorderSide(color: Colors.white, width: 2.0),
-          borderRadius: BorderRadius.all(Radius.circular(12.0)),
-        ),
-      ),
-      inputDecorationTheme: const InputDecorationTheme(
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white, width: 2.0),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.cyanAccent, width: 3.0),
-        ),
-        labelStyle: TextStyle(color: Colors.white),
-      ),
-      useMaterial3: true,
-    );
-
     return ValueListenableBuilder<bool>(
       valueListenable: SettingsService.highContrastNotifier,
       builder: (context, isHighContrast, child) {
@@ -73,7 +34,7 @@ class MyApp extends StatelessWidget {
           builder: (context, locale, child) {
             return MaterialApp(
               title: 'PH Fare Calculator',
-              theme: isHighContrast ? darkTheme : lightTheme,
+              theme: isHighContrast ? AppTheme.darkTheme : AppTheme.lightTheme,
               locale: locale,
               localizationsDelegates: const [
                 AppLocalizations.delegate,

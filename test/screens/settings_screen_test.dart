@@ -98,6 +98,10 @@ void main() {
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
+    // Scroll to ensure the High traffic option is visible
+    await tester.drag(find.byType(ListView), const Offset(0, -200));
+    await tester.pumpAndSettle();
+
     // Select High Traffic
     final highTrafficRadio = find.widgetWithText(
       RadioListTile<TrafficFactor>,

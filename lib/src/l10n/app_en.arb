@@ -21,5 +21,12 @@
   "trafficMedium": "Medium",
   "trafficMediumSubtitle": "Moderate traffic",
   "trafficHigh": "High",
-  "trafficHighSubtitle": "Heavy traffic"
+  "trafficHighSubtitle": "Heavy traffic",
+  "skipButtonLabel": "Skip",
+  "nextButton": "Next",
+  "getStartedButton": "Get Started",
+  "onboardingKnowFareDescription": "Calculate fares for jeepneys, buses, trains, and ferries across the Philippines.",
+  "onboardingWorkOfflineTitle": "Work Offline",
+  "onboardingWorkOfflineDescription": "Access fare data anytime, even without an internet connection.",
+  "onboardingLanguageTitle": "Choose Your Language"
 }

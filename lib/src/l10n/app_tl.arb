@@ -21,5 +21,12 @@
   "trafficMedium": "Katamtaman",
   "trafficMediumSubtitle": "Katamtamang trapiko",
   "trafficHigh": "Mataas",
-  "trafficHighSubtitle": "Mabigat na trapiko"
+  "trafficHighSubtitle": "Mabigat na trapiko",
+  "skipButtonLabel": "Laktawan",
+  "nextButton": "Susunod",
+  "getStartedButton": "Magsimula",
+  "onboardingKnowFareDescription": "Kalkulahin ang pamasahe para sa jeepney, bus, tren, at ferry sa buong Pilipinas.",
+  "onboardingWorkOfflineTitle": "Magtrabaho Offline",
+  "onboardingWorkOfflineDescription": "Ma-access ang datos ng pamasahe kahit walang internet connection.",
+  "onboardingLanguageTitle": "Pumili ng Wika"
 }

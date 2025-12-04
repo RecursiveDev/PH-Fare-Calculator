@@ -8,6 +8,8 @@ import '../../models/transport_mode.dart';
 import '../../repositories/fare_repository.dart';
 import '../../services/settings_service.dart';
 
+/// Modern settings screen with grouped sections and Material 3 styling.
+/// Follows 8dp grid system and uses theme colors from AppTheme.
 class SettingsScreen extends StatefulWidget {
   final SettingsService? settingsService;
 
@@ -17,24 +19,42 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen>
+    with SingleTickerProviderStateMixin {
   late final SettingsService _settingsService;
   late final FareRepository _fareRepository;
+  late final AnimationController _animationController;
+
   bool _isProvincialModeEnabled = false;
   bool _isHighContrastEnabled = false;
   TrafficFactor _trafficFactor = TrafficFactor.medium;
   DiscountType _discountType = DiscountType.standard;
+  Locale _currentLocale = const Locale('en');
   bool _isLoading = true;
 
   Set<String> _hiddenTransportModes = {};
   Map<String, List<FareFormula>> _groupedFormulas = {};
+
+  // App version info
+  static const String _appVersion = '1.0.0';
+  static const String _buildNumber = '1';
 
   @override
   void initState() {
     super.initState();
     _settingsService = widget.settingsService ?? getIt<SettingsService>();
     _fareRepository = getIt<FareRepository>();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
     _loadSettings();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -43,6 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final highContrast = await _settingsService.getHighContrastEnabled();
     final discountType = await _settingsService.getUserDiscountType();
     final hiddenModes = await _settingsService.getHiddenTransportModes();
+    final locale = await _settingsService.getLocale();
     final formulas = await _fareRepository.getAllFormulas();
 
     // Group formulas by mode
@@ -60,223 +81,602 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _isHighContrastEnabled = highContrast;
         _trafficFactor = trafficFactor;
         _discountType = discountType;
+        _currentLocale = locale;
         _hiddenTransportModes = hiddenModes;
         _groupedFormulas = grouped;
         _isLoading = false;
       });
+      _animationController.forward();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settingsTitle)),
+      backgroundColor: colorScheme.surfaceContainerLowest,
+      appBar: AppBar(
+        title: Semantics(
+          header: true,
+          child: Text(
+            AppLocalizations.of(context)!.settingsTitle,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: [
-                SwitchListTile(
-                  title: Text(
-                    AppLocalizations.of(context)!.provincialModeTitle,
-                  ),
-                  subtitle: Text(
-                    AppLocalizations.of(context)!.provincialModeSubtitle,
-                  ),
-                  value: _isProvincialModeEnabled,
-                  onChanged: (bool value) async {
-                    setState(() {
-                      _isProvincialModeEnabled = value;
-                    });
-                    await _settingsService.setProvincialMode(value);
-                  },
+          ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
+          : FadeTransition(
+              opacity: _animationController,
+              child: ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-                SwitchListTile(
-                  title: Text(
-                    AppLocalizations.of(context)!.highContrastModeTitle,
+                children: [
+                  // Preferences Section
+                  _buildSectionHeader(
+                    context,
+                    icon: Icons.tune_rounded,
+                    title: 'Preferences',
                   ),
-                  subtitle: Text(
-                    AppLocalizations.of(context)!.highContrastModeSubtitle,
+                  const SizedBox(height: 8),
+                  _buildSettingsCard(
+                    context,
+                    children: [
+                      _buildSwitchTile(
+                        context,
+                        title: AppLocalizations.of(
+                          context,
+                        )!.provincialModeTitle,
+                        subtitle: AppLocalizations.of(
+                          context,
+                        )!.provincialModeSubtitle,
+                        value: _isProvincialModeEnabled,
+                        icon: Icons.location_city_rounded,
+                        onChanged: (value) async {
+                          setState(() => _isProvincialModeEnabled = value);
+                          await _settingsService.setProvincialMode(value);
+                        },
+                      ),
+                    ],
                   ),
-                  value: _isHighContrastEnabled,
-                  onChanged: (bool value) async {
-                    setState(() {
-                      _isHighContrastEnabled = value;
-                    });
-                    await _settingsService.setHighContrastEnabled(value);
-                  },
-                ),
-                const Divider(),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                  child: Text(
-                    AppLocalizations.of(context)!.trafficFactorTitle,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  const SizedBox(height: 24),
+
+                  // Appearance Section
+                  _buildSectionHeader(
+                    context,
+                    icon: Icons.palette_rounded,
+                    title: 'Appearance',
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 8.0,
+                  const SizedBox(height: 8),
+                  _buildSettingsCard(
+                    context,
+                    children: [
+                      _buildSwitchTile(
+                        context,
+                        title: AppLocalizations.of(
+                          context,
+                        )!.highContrastModeTitle,
+                        subtitle: AppLocalizations.of(
+                          context,
+                        )!.highContrastModeSubtitle,
+                        value: _isHighContrastEnabled,
+                        icon: Icons.contrast_rounded,
+                        onChanged: (value) async {
+                          setState(() => _isHighContrastEnabled = value);
+                          await _settingsService.setHighContrastEnabled(value);
+                        },
+                      ),
+                      const Divider(height: 1, indent: 56),
+                      _buildLanguageTile(context),
+                    ],
                   ),
-                  child: Text(
-                    AppLocalizations.of(context)!.trafficFactorSubtitle,
-                    style: const TextStyle(color: Colors.grey),
+                  const SizedBox(height: 24),
+
+                  // Traffic Factor Section
+                  _buildSectionHeader(
+                    context,
+                    icon: Icons.traffic_rounded,
+                    title: AppLocalizations.of(context)!.trafficFactorTitle,
                   ),
-                ),
-                // ignore: deprecated_member_use
-                RadioListTile<TrafficFactor>(
-                  title: Text(AppLocalizations.of(context)!.trafficLow),
-                  subtitle: Text(
-                    AppLocalizations.of(context)!.trafficLowSubtitle,
+                  const SizedBox(height: 8),
+                  _buildSettingsCard(
+                    context,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                        child: Text(
+                          AppLocalizations.of(context)!.trafficFactorSubtitle,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      _buildTrafficFactorTile(
+                        context,
+                        title: AppLocalizations.of(context)!.trafficLow,
+                        subtitle: AppLocalizations.of(
+                          context,
+                        )!.trafficLowSubtitle,
+                        value: TrafficFactor.low,
+                        icon: Icons.speed_rounded,
+                        iconColor: Colors.green,
+                      ),
+                      _buildTrafficFactorTile(
+                        context,
+                        title: AppLocalizations.of(context)!.trafficMedium,
+                        subtitle: AppLocalizations.of(
+                          context,
+                        )!.trafficMediumSubtitle,
+                        value: TrafficFactor.medium,
+                        icon: Icons.speed_rounded,
+                        iconColor: Colors.orange,
+                      ),
+                      _buildTrafficFactorTile(
+                        context,
+                        title: AppLocalizations.of(context)!.trafficHigh,
+                        subtitle: AppLocalizations.of(
+                          context,
+                        )!.trafficHighSubtitle,
+                        value: TrafficFactor.high,
+                        icon: Icons.speed_rounded,
+                        iconColor: Colors.red,
+                      ),
+                    ],
                   ),
-                  value: TrafficFactor.low,
-                  // ignore: deprecated_member_use
-                  groupValue: _trafficFactor,
-                  // ignore: deprecated_member_use
-                  onChanged: (TrafficFactor? value) async {
-                    if (value != null) {
-                      setState(() {
-                        _trafficFactor = value;
-                      });
-                      await _settingsService.setTrafficFactor(value);
-                    }
-                  },
-                ),
-                // ignore: deprecated_member_use
-                RadioListTile<TrafficFactor>(
-                  title: Text(AppLocalizations.of(context)!.trafficMedium),
-                  subtitle: Text(
-                    AppLocalizations.of(context)!.trafficMediumSubtitle,
+                  const SizedBox(height: 24),
+
+                  // Passenger Type Section
+                  _buildSectionHeader(
+                    context,
+                    icon: Icons.person_rounded,
+                    title: 'Passenger Type',
                   ),
-                  value: TrafficFactor.medium,
-                  // ignore: deprecated_member_use
-                  groupValue: _trafficFactor,
-                  // ignore: deprecated_member_use
-                  onChanged: (TrafficFactor? value) async {
-                    if (value != null) {
-                      setState(() {
-                        _trafficFactor = value;
-                      });
-                      await _settingsService.setTrafficFactor(value);
-                    }
-                  },
-                ),
-                // ignore: deprecated_member_use
-                RadioListTile<TrafficFactor>(
-                  title: Text(AppLocalizations.of(context)!.trafficHigh),
-                  subtitle: Text(
-                    AppLocalizations.of(context)!.trafficHighSubtitle,
+                  const SizedBox(height: 8),
+                  _buildSettingsCard(
+                    context,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                        child: Text(
+                          'Select your passenger type to apply eligible discounts (20% off for Student, Senior, PWD)',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      _buildDiscountTypeTile(
+                        context,
+                        title: DiscountType.standard.displayName,
+                        subtitle: 'No discount',
+                        value: DiscountType.standard,
+                        icon: Icons.person_outline_rounded,
+                      ),
+                      _buildDiscountTypeTile(
+                        context,
+                        title: DiscountType.discounted.displayName,
+                        subtitle: '20% discount (RA 11314, RA 9994, RA 7277)',
+                        value: DiscountType.discounted,
+                        icon: Icons.discount_rounded,
+                      ),
+                    ],
                   ),
-                  value: TrafficFactor.high,
-                  // ignore: deprecated_member_use
-                  groupValue: _trafficFactor,
-                  // ignore: deprecated_member_use
-                  onChanged: (TrafficFactor? value) async {
-                    if (value != null) {
-                      setState(() {
-                        _trafficFactor = value;
-                      });
-                      await _settingsService.setTrafficFactor(value);
-                    }
-                  },
-                ),
-                const Divider(),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                  child: Text(
-                    'Passenger Type',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  const SizedBox(height: 24),
+
+                  // Transport Modes Section
+                  _buildSectionHeader(
+                    context,
+                    icon: Icons.directions_bus_rounded,
+                    title: 'Transport Modes',
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 8.0,
+                  const SizedBox(height: 8),
+                  _buildSettingsCard(
+                    context,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                        child: Text(
+                          'Select which transport modes to include in fare calculations',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      if (_groupedFormulas.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            'No transport modes available',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        )
+                      else
+                        ..._buildCategorizedTransportModes(context),
+                    ],
                   ),
-                  child: Text(
-                    'Select your passenger type to apply eligible discounts (20% off for Student, Senior, PWD)',
-                    style: const TextStyle(color: Colors.grey),
+                  const SizedBox(height: 24),
+
+                  // About Section
+                  _buildSectionHeader(
+                    context,
+                    icon: Icons.info_outline_rounded,
+                    title: 'About',
                   ),
-                ),
-                // ignore: deprecated_member_use
-                RadioListTile<DiscountType>(
-                  title: Text(DiscountType.standard.displayName),
-                  subtitle: const Text('No discount'),
-                  value: DiscountType.standard,
-                  // ignore: deprecated_member_use
-                  groupValue: _discountType,
-                  // ignore: deprecated_member_use
-                  onChanged: (DiscountType? value) async {
-                    if (value != null) {
-                      setState(() {
-                        _discountType = value;
-                      });
-                      await _settingsService.setUserDiscountType(value);
-                    }
-                  },
-                ),
-                // ignore: deprecated_member_use
-                RadioListTile<DiscountType>(
-                  title: Text(DiscountType.discounted.displayName),
-                  subtitle: const Text(
-                    '20% discount (RA 11314, RA 9994, RA 7277)',
+                  const SizedBox(height: 8),
+                  _buildSettingsCard(
+                    context,
+                    children: [
+                      _buildAboutTile(
+                        context,
+                        title: 'PH Fare Calculator',
+                        subtitle: 'Version $_appVersion (Build $_buildNumber)',
+                        icon: Icons.calculate_rounded,
+                      ),
+                      const Divider(height: 1, indent: 56),
+                      _buildAboutTile(
+                        context,
+                        title: 'Open Source Licenses',
+                        subtitle: 'View third-party licenses',
+                        icon: Icons.description_rounded,
+                        onTap: () => showLicensePage(
+                          context: context,
+                          applicationName: 'PH Fare Calculator',
+                          applicationVersion: '$_appVersion+$_buildNumber',
+                        ),
+                      ),
+                    ],
                   ),
-                  value: DiscountType.discounted,
-                  // ignore: deprecated_member_use
-                  groupValue: _discountType,
-                  // ignore: deprecated_member_use
-                  onChanged: (DiscountType? value) async {
-                    if (value != null) {
-                      setState(() {
-                        _discountType = value;
-                      });
-                      await _settingsService.setUserDiscountType(value);
-                    }
-                  },
-                ),
-                const Divider(),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                  child: Text(
-                    'Transport Modes',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 8.0,
-                  ),
-                  child: Text(
-                    'Select which transport modes to include in fare calculations',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ),
-                if (_groupedFormulas.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text(
-                      'No transport modes available',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                else
-                  ..._buildCategorizedTransportModes(),
-              ],
+                  const SizedBox(height: 32),
+                ],
+              ),
             ),
     );
   }
 
-  List<Widget> _buildCategorizedTransportModes() {
+  /// Builds a section header with icon and title.
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Semantics(
+      header: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Builds a card container for settings items.
+  Widget _buildSettingsCard(
+    BuildContext context, {
+    required List<Widget> children,
+  }) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
+  }
+
+  /// Builds a switch tile with icon.
+  Widget _buildSwitchTile(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required bool value,
+    required IconData icon,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Semantics(
+      toggled: value,
+      child: SwitchListTile(
+        title: Text(
+          title,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        value: value,
+        onChanged: onChanged,
+        secondary: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: colorScheme.onPrimaryContainer, size: 24),
+        ),
+        activeTrackColor: colorScheme.primary.withValues(alpha: 0.5),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      ),
+    );
+  }
+
+  /// Builds a language selection tile.
+  Widget _buildLanguageTile(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final languageName = _currentLocale.languageCode == 'tl'
+        ? 'Filipino'
+        : 'English';
+
+    return Semantics(
+      button: true,
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            Icons.language_rounded,
+            color: colorScheme.onPrimaryContainer,
+            size: 24,
+          ),
+        ),
+        title: Text(
+          'Language',
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: Text(
+          languageName,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        trailing: Icon(
+          Icons.chevron_right_rounded,
+          color: colorScheme.onSurfaceVariant,
+        ),
+        onTap: () => _showLanguageBottomSheet(context),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      ),
+    );
+  }
+
+  /// Shows language selection bottom sheet.
+  void _showLanguageBottomSheet(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 32,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Select Language',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildLanguageOption(
+              context,
+              locale: const Locale('en'),
+              name: 'English',
+              flag: '🇺🇸',
+            ),
+            _buildLanguageOption(
+              context,
+              locale: const Locale('tl'),
+              name: 'Filipino',
+              flag: '🇵🇭',
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Builds a language option in bottom sheet.
+  Widget _buildLanguageOption(
+    BuildContext context, {
+    required Locale locale,
+    required String name,
+    required String flag,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isSelected = _currentLocale.languageCode == locale.languageCode;
+
+    return Semantics(
+      selected: isSelected,
+      child: ListTile(
+        leading: Text(flag, style: const TextStyle(fontSize: 28)),
+        title: Text(
+          name,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+        trailing: isSelected
+            ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
+            : null,
+        onTap: () async {
+          final navigator = Navigator.of(context);
+          await _settingsService.setLocale(locale);
+          if (mounted) {
+            setState(() => _currentLocale = locale);
+            navigator.pop();
+          }
+        },
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  /// Builds a traffic factor radio tile.
+  Widget _buildTrafficFactorTile(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required TrafficFactor value,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Semantics(
+      selected: _trafficFactor == value,
+      // Using deprecated groupValue/onChanged for test compatibility
+      // ignore: deprecated_member_use
+      child: RadioListTile<TrafficFactor>(
+        title: Text(
+          title,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        value: value,
+        // ignore: deprecated_member_use
+        groupValue: _trafficFactor,
+        // ignore: deprecated_member_use
+        onChanged: (TrafficFactor? newValue) async {
+          if (newValue != null) {
+            setState(() => _trafficFactor = newValue);
+            await _settingsService.setTrafficFactor(newValue);
+          }
+        },
+        secondary: Icon(icon, color: iconColor, size: 24),
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.primary;
+          }
+          return colorScheme.onSurfaceVariant;
+        }),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+      ),
+    );
+  }
+
+  /// Builds a discount type radio tile.
+  Widget _buildDiscountTypeTile(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required DiscountType value,
+    required IconData icon,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Semantics(
+      selected: _discountType == value,
+      // Using deprecated groupValue/onChanged for test compatibility
+      // ignore: deprecated_member_use
+      child: RadioListTile<DiscountType>(
+        title: Text(
+          title,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        value: value,
+        // ignore: deprecated_member_use
+        groupValue: _discountType,
+        // ignore: deprecated_member_use
+        onChanged: (DiscountType? newValue) async {
+          if (newValue != null) {
+            setState(() => _discountType = newValue);
+            await _settingsService.setUserDiscountType(newValue);
+          }
+        },
+        secondary: Icon(icon, color: colorScheme.primary, size: 24),
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.primary;
+          }
+          return colorScheme.onSurfaceVariant;
+        }),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+      ),
+    );
+  }
+
+  /// Builds categorized transport mode toggles.
+  List<Widget> _buildCategorizedTransportModes(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final widgets = <Widget>[];
 
     // Group modes by category
@@ -308,24 +708,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final modesInCategory = categorizedModes[category] ?? [];
       if (modesInCategory.isEmpty) continue;
 
-      // Category Header
+      // Category Header with colored icon
       widgets.add(
         Padding(
-          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Row(
             children: [
               Icon(
                 _getIconForCategory(category),
                 size: 20,
-                color: Colors.blue[700],
+                color: colorScheme.primary,
               ),
               const SizedBox(width: 8),
               Text(
                 category,
-                style: TextStyle(
-                  fontSize: 15,
+                style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: Colors.blue[700],
+                  color: colorScheme.primary,
                 ),
               ),
             ],
@@ -339,7 +738,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final mode = TransportMode.fromString(modeStr);
           final formulas = _groupedFormulas[modeStr] ?? [];
 
-          widgets.add(_buildTransportModeCard(mode, formulas));
+          widgets.add(_buildTransportModeSection(context, mode, formulas));
         } catch (e) {
           continue;
         }
@@ -349,50 +748,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return widgets;
   }
 
-  Widget _buildTransportModeCard(
+  /// Builds a transport mode section with toggles.
+  Widget _buildTransportModeSection(
+    BuildContext context,
     TransportMode mode,
     List<FareFormula> formulas,
   ) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Semantics(
+      container: true,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Mode Header with Icon and Name
             Row(
               children: [
-                Icon(_getIconForMode(mode), size: 24, color: Colors.blue[700]),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    _getIconForMode(mode),
+                    size: 20,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    mode.displayName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        mode.displayName,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        mode.description,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-
-            // Description
-            Text(
-              mode.description,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[700],
-                height: 1.4,
-              ),
-            ),
 
             if (formulas.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
+              Divider(
+                height: 1,
+                color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+              ),
 
               // Subtype Toggles using SwitchListTile for test compatibility
               ...formulas.map((formula) {
@@ -400,13 +826,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 final isHidden = _hiddenTransportModes.contains(modeSubTypeKey);
 
                 return SwitchListTile(
-                  title: Text('  ${formula.subType}'),
+                  title: Text(
+                    '  ${formula.subType}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   subtitle: formula.notes != null && formula.notes!.isNotEmpty
                       ? Text(
                           '  ${formula.notes}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -430,6 +860,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                   contentPadding: EdgeInsets.zero,
                   dense: true,
+                  activeTrackColor: colorScheme.primary.withValues(alpha: 0.5),
                 );
               }),
             ],
@@ -439,45 +870,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// Builds an about tile.
+  Widget _buildAboutTile(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    VoidCallback? onTap,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Semantics(
+      button: onTap != null,
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: colorScheme.onPrimaryContainer, size: 24),
+        ),
+        title: Text(
+          title,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        trailing: onTap != null
+            ? Icon(
+                Icons.chevron_right_rounded,
+                color: colorScheme.onSurfaceVariant,
+              )
+            : null,
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      ),
+    );
+  }
+
   IconData _getIconForCategory(String category) {
     switch (category.toLowerCase()) {
       case 'road':
-        return Icons.directions_car;
+        return Icons.directions_car_rounded;
       case 'rail':
-        return Icons.train;
+        return Icons.train_rounded;
       case 'water':
-        return Icons.directions_boat;
+        return Icons.directions_boat_rounded;
       default:
-        return Icons.help_outline;
+        return Icons.help_outline_rounded;
     }
   }
 
   IconData _getIconForMode(TransportMode mode) {
     switch (mode) {
       case TransportMode.jeepney:
-        return Icons.directions_bus;
+        return Icons.directions_bus_rounded;
       case TransportMode.bus:
-        return Icons.airport_shuttle;
+        return Icons.airport_shuttle_rounded;
       case TransportMode.taxi:
-        return Icons.local_taxi;
+        return Icons.local_taxi_rounded;
       case TransportMode.train:
-        return Icons.train;
+        return Icons.train_rounded;
       case TransportMode.ferry:
-        return Icons.directions_boat;
+        return Icons.directions_boat_rounded;
       case TransportMode.tricycle:
-        return Icons.pedal_bike;
+        return Icons.pedal_bike_rounded;
       case TransportMode.uvExpress:
-        return Icons.local_shipping;
+        return Icons.local_shipping_rounded;
       case TransportMode.van:
-        return Icons.airport_shuttle;
+        return Icons.airport_shuttle_rounded;
       case TransportMode.motorcycle:
-        return Icons.two_wheeler;
+        return Icons.two_wheeler_rounded;
       case TransportMode.edsaCarousel:
-        return Icons.directions_bus_filled;
+        return Icons.directions_bus_filled_rounded;
       case TransportMode.pedicab:
-        return Icons.directions_bike;
+        return Icons.directions_bike_rounded;
       case TransportMode.kuliglig:
-        return Icons.agriculture;
+        return Icons.agriculture_rounded;
     }
   }
 }
