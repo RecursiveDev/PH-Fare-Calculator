@@ -176,7 +176,7 @@ class ConnectivityService {
 
   /// Checks if the device has actual internet access.
   ///
-  /// This performs a quick check to a known reliable endpoint to verify
+  /// This performs a quick check to known reliable endpoints to verify
   /// that the device can actually reach the internet, not just that it
   /// has a network connection.
   ///
@@ -190,14 +190,25 @@ class ConnectivityService {
       return ConnectivityStatus.offline;
     }
 
-    // Try to reach a reliable endpoint
-    final hasInternet = await isServiceReachable(
-      'https://www.google.com',
-      timeout: const Duration(seconds: 3),
-    );
+    // List of reliable endpoints to check.
+    // We check multiple endpoints to avoid false negatives due to blocked domains
+    // (e.g., google.com in China) or temporary outages.
+    const endpoints = [
+      'https://1.1.1.1', // Cloudflare (IP based, usually accessible)
+      'https://www.microsoft.com', // Global availability
+      'https://www.github.com', // Fallback
+    ];
 
-    if (hasInternet) {
-      return ConnectivityStatus.online;
+    // Try each endpoint until one succeeds
+    for (final endpoint in endpoints) {
+      final hasInternet = await isServiceReachable(
+        endpoint,
+        timeout: const Duration(seconds: 3),
+      );
+
+      if (hasInternet) {
+        return ConnectivityStatus.online;
+      }
     }
 
     return ConnectivityStatus.limited;

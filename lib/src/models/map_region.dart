@@ -218,54 +218,53 @@ class MapRegion extends HiveObject {
 class PredefinedRegions {
   PredefinedRegions._();
 
-  /// Metro Manila region.
-  static MapRegion metroManila = MapRegion(
-    id: 'metro_manila',
-    name: 'Metro Manila',
-    description:
-        'National Capital Region including all 16 cities and 1 municipality',
-    southWestLat: 14.35,
-    southWestLng: 120.90,
-    northEastLat: 14.80,
-    northEastLng: 121.15,
-    minZoom: 10,
-    maxZoom: 16,
-    estimatedTileCount: 15000,
-    estimatedSizeMB: 150,
+  /// Luzon region.
+  static MapRegion luzon = MapRegion(
+    id: 'luzon',
+    name: 'Luzon',
+    description: 'Luzon island group',
+    southWestLat: 7.5,
+    southWestLng: 116.9,
+    northEastLat: 21.2,
+    northEastLng: 124.6,
+    minZoom: 8,
+    maxZoom: 14,
+    estimatedTileCount: 80000,
+    estimatedSizeMB: 800,
   );
 
-  /// Cebu Metro region.
-  static MapRegion cebuMetro = MapRegion(
-    id: 'cebu_metro',
-    name: 'Cebu City & Metro',
-    description: 'Cebu City and surrounding metropolitan area',
-    southWestLat: 10.20,
-    southWestLng: 123.80,
-    northEastLat: 10.45,
-    northEastLng: 124.00,
-    minZoom: 10,
-    maxZoom: 16,
-    estimatedTileCount: 8000,
-    estimatedSizeMB: 80,
+  /// Visayas region.
+  static MapRegion visayas = MapRegion(
+    id: 'visayas',
+    name: 'Visayas',
+    description: 'Visayas island group',
+    southWestLat: 9.0,
+    southWestLng: 121.0,
+    northEastLat: 13.0,
+    northEastLng: 126.2,
+    minZoom: 8,
+    maxZoom: 14,
+    estimatedTileCount: 35000,
+    estimatedSizeMB: 350,
   );
 
-  /// Davao City region.
-  static MapRegion davaoCity = MapRegion(
-    id: 'davao_city',
-    name: 'Davao City',
-    description: 'Davao City and surrounding areas',
-    southWestLat: 6.90,
-    southWestLng: 125.45,
-    northEastLat: 7.20,
-    northEastLng: 125.70,
-    minZoom: 10,
-    maxZoom: 16,
-    estimatedTileCount: 6000,
-    estimatedSizeMB: 60,
+  /// Mindanao region.
+  static MapRegion mindanao = MapRegion(
+    id: 'mindanao',
+    name: 'Mindanao',
+    description: 'Mindanao island group',
+    southWestLat: 4.5,
+    southWestLng: 119.0,
+    northEastLat: 10.7,
+    northEastLng: 127.0,
+    minZoom: 8,
+    maxZoom: 14,
+    estimatedTileCount: 50000,
+    estimatedSizeMB: 500,
   );
 
   /// All predefined regions.
-  static List<MapRegion> get all => [metroManila, cebuMetro, davaoCity];
+  static List<MapRegion> get all => [luzon, visayas, mindanao];
 
   /// Gets a region by ID.
   static MapRegion? getById(String id) {

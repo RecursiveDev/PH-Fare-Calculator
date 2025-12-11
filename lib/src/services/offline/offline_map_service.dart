@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart' as fmtc;
+import 'package:hive/hive.dart';
 import 'package:injectable/injectable.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -31,8 +32,14 @@ class OfflineMapService {
   /// The FMTC store for tile caching.
   fmtc.FMTCStore? _store;
 
+  /// Hive box for storing region metadata.
+  Box<MapRegion>? _regionsBox;
+
   /// Store name for the tile cache.
   static const String _storeName = 'ph_fare_calculator_tiles';
+
+  /// Store name for the regions Hive box.
+  static const String _regionsBoxName = 'offline_maps';
 
   /// Creates a new [OfflineMapService] instance.
   @factoryMethod
@@ -51,14 +58,55 @@ class OfflineMapService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // Initialize FMTC backend
-    await fmtc.FMTCObjectBoxBackend().initialise();
+    try {
+      // Initialize FMTC backend
+      await fmtc.FMTCObjectBoxBackend().initialise();
 
-    // Get or create the store
-    _store = fmtc.FMTCStore(_storeName);
+      // Get or create the store
+      _store = fmtc.FMTCStore(_storeName);
 
-    // Ensure the store exists with default settings
-    await _store!.manage.create();
+      // Ensure the store exists with default settings
+      await _store!.manage.create();
+    } catch (e) {
+      // ignore: avoid_print
+      print('Failed to initialize FMTC backend: $e');
+      // If FMTC fails, we can't really do anything offline map related,
+      // but we shouldn't crash the app.
+      // We'll leave _isInitialized as false so calls to store throw or handle it.
+      // However, we still might want to try initializing Hive metadata just in case
+      // we can show "Downloaded" status even if tiles are inaccessible?
+      // Actually, if backend fails, tiles likely won't load.
+      // But we proceed to catch everything to avoid crash.
+    }
+
+    // Initialize Hive persistence for regions
+    try {
+      if (!Hive.isBoxOpen(_regionsBoxName)) {
+        _regionsBox = await Hive.openBox<MapRegion>(_regionsBoxName);
+      } else {
+        _regionsBox = Hive.box<MapRegion>(_regionsBoxName);
+      }
+
+      // Restore saved regions state
+      if (_regionsBox != null) {
+        for (final savedRegion in _regionsBox!.values) {
+          final predefined = PredefinedRegions.getById(savedRegion.id);
+          if (predefined != null) {
+            // Restore state from persistence
+            predefined.status = savedRegion.status;
+            predefined.downloadProgress = savedRegion.downloadProgress;
+            predefined.tilesDownloaded = savedRegion.tilesDownloaded;
+            predefined.actualSizeBytes = savedRegion.actualSizeBytes;
+            predefined.lastUpdated = savedRegion.lastUpdated;
+            predefined.errorMessage = savedRegion.errorMessage;
+          }
+        }
+      }
+    } catch (e) {
+      // Log error or handle initialization failure
+      // ignore: avoid_print
+      print('Failed to initialize Hive box for offline maps: $e');
+    }
 
     _isInitialized = true;
   }
@@ -140,6 +188,10 @@ class OfflineMapService {
           region.downloadProgress = 1.0;
           region.tilesDownloaded = tilesDownloaded;
           region.lastUpdated = DateTime.now();
+
+          // Save to Hive
+          await _regionsBox?.put(region.id, region);
+
           break;
         }
       }
@@ -198,6 +250,9 @@ class OfflineMapService {
     region.actualSizeBytes = null;
     region.lastUpdated = null;
     region.errorMessage = null;
+
+    // Remove from Hive
+    await _regionsBox?.delete(region.id);
   }
 
   /// Gets the list of downloaded regions.

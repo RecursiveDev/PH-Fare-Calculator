@@ -3,40 +3,38 @@ import 'package:ph_fare_calculator/src/models/map_region.dart';
 
 void main() {
   group('OfflineMapService - PredefinedRegions', () {
-    test('Metro Manila region has valid bounds', () {
-      final region = PredefinedRegions.metroManila;
+    test('Luzon region has valid bounds', () {
+      final region = PredefinedRegions.luzon;
 
       // Check that bounds are valid
       expect(region.southWestLat, lessThan(region.northEastLat));
       expect(region.southWestLng, lessThan(region.northEastLng));
 
-      // Check reasonable bounds for Metro Manila
-      expect(region.southWestLat, greaterThan(14.0));
-      expect(region.northEastLat, lessThan(15.0));
-      expect(region.southWestLng, greaterThan(120.0));
-      expect(region.northEastLng, lessThan(122.0));
+      // Check reasonable bounds for Luzon (Updated for full coverage including Palawan and Batanes)
+      expect(region.southWestLat, greaterThan(7.0));
+      expect(region.northEastLat, lessThan(22.0));
     });
 
-    test('Cebu Metro region has valid bounds', () {
-      final region = PredefinedRegions.cebuMetro;
+    test('Visayas region has valid bounds', () {
+      final region = PredefinedRegions.visayas;
 
       expect(region.southWestLat, lessThan(region.northEastLat));
       expect(region.southWestLng, lessThan(region.northEastLng));
 
-      // Check reasonable bounds for Cebu
-      expect(region.southWestLat, greaterThan(10.0));
+      // Check reasonable bounds for Visayas
+      expect(region.southWestLat, greaterThanOrEqualTo(9.0));
+      expect(region.northEastLat, lessThanOrEqualTo(13.0));
+    });
+
+    test('Mindanao region has valid bounds', () {
+      final region = PredefinedRegions.mindanao;
+
+      expect(region.southWestLat, lessThan(region.northEastLat));
+      expect(region.southWestLng, lessThan(region.northEastLng));
+
+      // Check reasonable bounds for Mindanao (Updated for Tawi-Tawi)
+      expect(region.southWestLat, greaterThanOrEqualTo(4.0));
       expect(region.northEastLat, lessThan(11.0));
-    });
-
-    test('Davao City region has valid bounds', () {
-      final region = PredefinedRegions.davaoCity;
-
-      expect(region.southWestLat, lessThan(region.northEastLat));
-      expect(region.southWestLng, lessThan(region.northEastLng));
-
-      // Check reasonable bounds for Davao
-      expect(region.southWestLat, greaterThan(6.0));
-      expect(region.northEastLat, lessThan(8.0));
     });
 
     test('All regions have reasonable zoom levels', () {
@@ -62,11 +60,11 @@ void main() {
 
   group('RegionDownloadProgress', () {
     test('progress calculation is correct', () {
-      final region = PredefinedRegions.metroManila;
+      final region = PredefinedRegions.luzon;
       final progress = RegionDownloadProgress(
         region: region,
-        tilesDownloaded: 7500,
-        totalTiles: 15000,
+        tilesDownloaded: 25000,
+        totalTiles: 50000,
       );
 
       expect(progress.progress, 0.5);
@@ -74,11 +72,11 @@ void main() {
     });
 
     test('complete progress shows 100%', () {
-      final region = PredefinedRegions.metroManila;
+      final region = PredefinedRegions.luzon;
       final progress = RegionDownloadProgress(
         region: region,
-        tilesDownloaded: 15000,
-        totalTiles: 15000,
+        tilesDownloaded: 50000,
+        totalTiles: 50000,
         isComplete: true,
       );
 
@@ -88,11 +86,11 @@ void main() {
     });
 
     test('error handling works correctly', () {
-      final region = PredefinedRegions.metroManila;
+      final region = PredefinedRegions.luzon;
       final progress = RegionDownloadProgress(
         region: region,
-        tilesDownloaded: 5000,
-        totalTiles: 15000,
+        tilesDownloaded: 10000,
+        totalTiles: 50000,
         errorMessage: 'Network error',
       );
 

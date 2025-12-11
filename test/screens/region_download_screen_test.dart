@@ -124,7 +124,7 @@ void main() {
 
     group('Action button states', () {
       test('download button shown for not downloaded region', () {
-        final region = PredefinedRegions.metroManila;
+        final region = PredefinedRegions.luzon;
         expect(region.status, DownloadStatus.notDownloaded);
         // Download icon should be shown
       });

@@ -153,20 +153,20 @@ void main() {
   });
 
   group('PredefinedRegions', () {
-    test('metroManila has correct id', () {
-      expect(PredefinedRegions.metroManila.id, 'metro_manila');
+    test('luzon has correct id', () {
+      expect(PredefinedRegions.luzon.id, 'luzon');
     });
 
-    test('metroManila has correct name', () {
-      expect(PredefinedRegions.metroManila.name, 'Metro Manila');
+    test('luzon has correct name', () {
+      expect(PredefinedRegions.luzon.name, 'Luzon');
     });
 
-    test('cebuMetro has correct id', () {
-      expect(PredefinedRegions.cebuMetro.id, 'cebu_metro');
+    test('visayas has correct id', () {
+      expect(PredefinedRegions.visayas.id, 'visayas');
     });
 
-    test('davaoCity has correct id', () {
-      expect(PredefinedRegions.davaoCity.id, 'davao_city');
+    test('mindanao has correct id', () {
+      expect(PredefinedRegions.mindanao.id, 'mindanao');
     });
 
     test('all returns list with 3 regions', () {
@@ -174,9 +174,9 @@ void main() {
     });
 
     test('getById returns correct region', () {
-      final region = PredefinedRegions.getById('metro_manila');
+      final region = PredefinedRegions.getById('luzon');
       expect(region, isNotNull);
-      expect(region!.name, 'Metro Manila');
+      expect(region!.name, 'Luzon');
     });
 
     test('getById returns null for unknown id', () {
