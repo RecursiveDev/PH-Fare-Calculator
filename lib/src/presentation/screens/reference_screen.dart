@@ -3,11 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../src/models/fare_formula.dart';
 import '../../../src/models/static_fare.dart';
+import '../../core/theme/transit_colors.dart';
 
 /// A modern reference screen with tab-based navigation for fare information.
 /// Displays Road, Train, Ferry fares and Discount information with search functionality.
 class ReferenceScreen extends StatefulWidget {
-  const ReferenceScreen({super.key});
+  /// Creates a ReferenceScreen.
+  ///
+  /// [initialTabIndex] - The tab index to show initially (0=Road, 1=Train, 2=Ferry, 3=Discount Guide).
+  const ReferenceScreen({super.key, this.initialTabIndex = 0});
+
+  /// The initial tab index to display when the screen opens.
+  /// Defaults to 0 (Road Transport tab).
+  final int initialTabIndex;
 
   @override
   State<ReferenceScreen> createState() => _ReferenceScreenState();
@@ -28,7 +36,13 @@ class _ReferenceScreenState extends State<ReferenceScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    // Clamp initialTabIndex to valid range [0, 3]
+    final clampedIndex = widget.initialTabIndex.clamp(0, 3);
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: clampedIndex,
+    );
     _tabController.addListener(_onTabChanged);
     _loadReferenceData();
   }
@@ -100,25 +114,19 @@ class _ReferenceScreenState extends State<ReferenceScreen>
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+          tooltip: 'Back',
+        ),
+        title: const Text('Fare Reference Guide'),
+        centerTitle: false,
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Custom App Bar with title
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Semantics(
-                header: true,
-                child: Text(
-                  'Fare Reference Guide',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ),
-            ),
-
             // Search Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -167,6 +175,8 @@ class _ReferenceScreenState extends State<ReferenceScreen>
               ),
               child: TabBar(
                 controller: _tabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
                 labelColor: colorScheme.primary,
                 unselectedLabelColor: colorScheme.onSurfaceVariant,
                 indicatorSize: TabBarIndicatorSize.tab,
@@ -184,7 +194,7 @@ class _ReferenceScreenState extends State<ReferenceScreen>
                   _buildTab(Icons.directions_bus_rounded, 'Road'),
                   _buildTab(Icons.train_rounded, 'Train'),
                   _buildTab(Icons.directions_boat_rounded, 'Ferry'),
-                  _buildTab(Icons.info_outline_rounded, 'Discounts'),
+                  _buildTab(Icons.info_outline_rounded, 'Discount Guide'),
                 ],
               ),
             ),
@@ -648,26 +658,57 @@ class _TrainLineCard extends StatelessWidget {
     required this.index,
   });
 
-  Color _getLineColor(String name) {
-    if (name.contains('LRT-1') || name.contains('LRT1')) {
-      return const Color(0xFF4CAF50); // Green
-    } else if (name.contains('LRT-2') || name.contains('LRT2')) {
-      return const Color(0xFF7B1FA2); // Purple
-    } else if (name.contains('MRT-3') || name.contains('MRT3')) {
-      return const Color(0xFF2196F3); // Blue
-    } else if (name.contains('MRT-7') || name.contains('MRT7')) {
-      return const Color(0xFFFF9800); // Orange
-    } else if (name.contains('PNR')) {
-      return const Color(0xFF795548); // Brown
+  Color _getLineColor(BuildContext context, String name) {
+    final transitColors = Theme.of(context).extension<TransitColors>();
+    if (transitColors == null) {
+      // Fallback to default colors if extension not found
+      if (name.contains('LRT-1') || name.contains('LRT1')) {
+        return const Color(0xFF4CAF50);
+      } else if (name.contains('LRT-2') || name.contains('LRT2')) {
+        return const Color(0xFF7B1FA2);
+      } else if (name.contains('MRT-3') || name.contains('MRT3')) {
+        return const Color(0xFF2196F3);
+      } else if (name.contains('MRT-7') || name.contains('MRT7')) {
+        return const Color(0xFFFF9800);
+      } else if (name.contains('PNR')) {
+        return const Color(0xFF795548);
+      }
+      return const Color(0xFF607D8B);
     }
-    return const Color(0xFF607D8B); // Default grey-blue
+
+    if (name.contains('LRT-1') || name.contains('LRT1')) {
+      return transitColors.lrt1;
+    } else if (name.contains('LRT-2') || name.contains('LRT2')) {
+      return transitColors.lrt2;
+    } else if (name.contains('MRT-3') || name.contains('MRT3')) {
+      return transitColors.mrt3;
+    } else if (name.contains('MRT-7') || name.contains('MRT7')) {
+      return transitColors.mrt7;
+    } else if (name.contains('PNR')) {
+      return transitColors.pnr;
+    }
+    return Theme.of(context).colorScheme.outline;
+  }
+
+  /// Gets the appropriate text color for the train line header based on the line color.
+  /// Uses dark text on light/pastel backgrounds for better contrast in dark mode.
+  Color _getHeaderTextColor(BuildContext context, Color lineColor) {
+    // Calculate relative luminance to determine if the background is light or dark
+    final luminance = lineColor.computeLuminance();
+    // For light/pastel colors (luminance > 0.5), use dark text
+    // For dark colors, use white text
+    if (luminance > 0.5) {
+      return const Color(0xFF1B1B1F); // Dark text for light backgrounds
+    }
+    return Colors.white;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final lineColor = _getLineColor(lineName);
+    final lineColor = _getLineColor(context, lineName);
+    final headerTextColor = _getHeaderTextColor(context, lineColor);
 
     // Calculate stats
     final maxFare = routes.map((r) => r.price).reduce((a, b) => a > b ? a : b);
@@ -712,12 +753,12 @@ class _TrainLineCard extends StatelessWidget {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: headerTextColor.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.train_rounded,
-                        color: Colors.white,
+                        color: headerTextColor,
                         size: 24,
                       ),
                     ),
@@ -730,13 +771,13 @@ class _TrainLineCard extends StatelessWidget {
                             lineName,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: headerTextColor,
                             ),
                           ),
                           Text(
                             '${uniqueStations.length} stations • ${routes.length} routes',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.8),
+                              color: headerTextColor.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -748,13 +789,13 @@ class _TrainLineCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: headerTextColor.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         '₱${minFare.toStringAsFixed(0)} - ₱${maxFare.toStringAsFixed(0)}',
                         style: theme.textTheme.labelMedium?.copyWith(
-                          color: Colors.white,
+                          color: headerTextColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1109,6 +1150,7 @@ class _DiscountInfoTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final transitColors = theme.extension<TransitColors>();
 
     final discounts = [
       _DiscountData(
@@ -1117,7 +1159,7 @@ class _DiscountInfoTab extends StatelessWidget {
         discount: '20% off',
         description:
             'Valid student ID from accredited institution required. Must be enrolled in current academic year.',
-        color: const Color(0xFF2196F3),
+        color: transitColors?.discountStudent ?? const Color(0xFF2196F3),
       ),
       _DiscountData(
         icon: Icons.elderly_rounded,
@@ -1125,7 +1167,7 @@ class _DiscountInfoTab extends StatelessWidget {
         discount: '20% off',
         description:
             'Senior Citizen ID or valid government ID showing age 60 and above required.',
-        color: const Color(0xFF9C27B0),
+        color: transitColors?.discountSenior ?? const Color(0xFF9C27B0),
       ),
       _DiscountData(
         icon: Icons.accessible_rounded,
@@ -1133,7 +1175,7 @@ class _DiscountInfoTab extends StatelessWidget {
         discount: '20% off',
         description:
             'PWD ID issued by the local government required. Companion may also be entitled to discount.',
-        color: const Color(0xFF4CAF50),
+        color: transitColors?.discountPwd ?? const Color(0xFF4CAF50),
       ),
     ];
 
@@ -1334,6 +1376,14 @@ class _DiscountCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final transitColors = theme.extension<TransitColors>();
+    final badgeColor = transitColors?.discountBadge ?? const Color(0xFF4CAF50);
+    // In dark mode, use the badge color itself (light pastel green) for text visibility
+    // In light mode, use the dark green text color for contrast on light background
+    final badgeTextColor = isDark
+        ? badgeColor
+        : (transitColors?.discountBadgeText ?? const Color(0xFF2E7D32));
 
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 400 + (index * 100)),
@@ -1387,21 +1437,21 @@ class _DiscountCard extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF4CAF50,
-                              ).withValues(alpha: 0.1),
+                              color: badgeColor.withValues(
+                                alpha: isDark ? 0.2 : 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: const Color(
-                                  0xFF4CAF50,
-                                ).withValues(alpha: 0.3),
+                                color: badgeColor.withValues(
+                                  alpha: isDark ? 0.5 : 0.3,
+                                ),
                               ),
                             ),
                             child: Text(
                               data.discount,
                               style: theme.textTheme.labelMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF2E7D32),
+                                color: badgeTextColor,
                               ),
                             ),
                           ),

@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Built%20with-Flutter-blue.svg)](https://flutter.dev/)
 [![CI](https://github.com/MasuRii/ph-fare-calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/MasuRii/ph-fare-calculator/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/MasuRii/ph-fare-calculator/releases)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/MasuRii/ph-fare-calculator/releases)
 
 **PH Fare Calculator** is a cross-platform mobile application designed to help tourists, expats, and locals estimate public transport costs across the Philippines.
 

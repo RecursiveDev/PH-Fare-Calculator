@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../l10n/app_localizations.dart';
 import 'package:ph_fare_calculator/src/core/di/injection.dart';
+import 'package:ph_fare_calculator/src/presentation/widgets/app_logo_widget.dart';
 import 'package:ph_fare_calculator/src/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ph_fare_calculator/src/presentation/screens/main_screen.dart';
@@ -30,11 +32,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   late final AnimationController _contentAnimationController;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
-
-  // Brand colors from AppTheme
-  static const Color _primaryBlue = Color(0xFF0038A8);
-  static const Color _secondaryYellow = Color(0xFFFCD116);
-  static const Color _tertiaryRed = Color(0xFFCE1126);
 
   // Total pages count
   static const int _totalPages = 3;
@@ -135,7 +132,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               end: Alignment.bottomCenter,
               colors: [
                 colorScheme.primary.withValues(alpha: 0.05),
-                Colors.white,
+                colorScheme.surface,
               ],
             ),
           ),
@@ -172,6 +169,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildSkipButton(AppLocalizations l10n) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Row(
@@ -183,7 +181,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             child: TextButton(
               onPressed: _skipOnboarding,
               style: TextButton.styleFrom(
-                foregroundColor: Colors.grey.shade600,
+                foregroundColor: colorScheme.onSurfaceVariant,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 8,
@@ -204,22 +202,54 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildKnowYourFarePage(AppLocalizations l10n, ThemeData theme) {
-    return _buildOnboardingPage(
-      icon: Icons.directions_bus_rounded,
-      iconColor: _primaryBlue,
-      iconBackgroundColor: _primaryBlue.withValues(alpha: 0.1),
-      title: l10n.welcomeTitle,
-      description: l10n.onboardingKnowFareDescription,
-      theme: theme,
-      semanticLabel: 'Know Your Fare - Calculate fares for different transport',
+    final colorScheme = theme.colorScheme;
+    return Semantics(
+      label: 'Know Your Fare - Calculate fares for different transport',
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Use AppLogoWidget for visual consistency with splash screen
+                const AppLogoWidget(size: AppLogoSize.large, showShadow: true),
+                const SizedBox(height: 48),
+                // Title
+                Text(
+                  l10n.welcomeTitle,
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                // Description
+                Text(
+                  l10n.onboardingKnowFareDescription,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildWorkOfflinePage(AppLocalizations l10n, ThemeData theme) {
+    final colorScheme = theme.colorScheme;
     return _buildOnboardingPage(
       icon: Icons.cloud_download_rounded,
-      iconColor: _secondaryYellow.withValues(alpha: 0.9),
-      iconBackgroundColor: _secondaryYellow.withValues(alpha: 0.15),
+      iconColor: colorScheme.secondary,
+      iconBackgroundColor: colorScheme.secondaryContainer,
       title: l10n.onboardingWorkOfflineTitle,
       description: l10n.onboardingWorkOfflineDescription,
       theme: theme,
@@ -228,6 +258,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildLanguageSelectionPage(AppLocalizations l10n, ThemeData theme) {
+    final colorScheme = theme.colorScheme;
     return SlideTransition(
       position: _slideAnimation,
       child: FadeTransition(
@@ -245,13 +276,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: _tertiaryRed.withValues(alpha: 0.1),
+                    color: colorScheme.tertiaryContainer,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.translate_rounded,
                     size: 48,
-                    color: _tertiaryRed.withValues(alpha: 0.9),
+                    color: colorScheme.tertiary,
                   ),
                 ),
               ),
@@ -261,7 +292,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 l10n.onboardingLanguageTitle,
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1A1C1E),
+                  color: colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -270,7 +301,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               Text(
                 l10n.selectLanguage,
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey.shade600,
+                  color: colorScheme.onSurfaceVariant,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -326,6 +357,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     required ThemeData theme,
     required VoidCallback onTap,
   }) {
+    final colorScheme = theme.colorScheme;
     return Semantics(
       label:
           'Select $language language${isSelected ? ", currently selected" : ""}',
@@ -339,17 +371,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: BoxDecoration(
             color: isSelected
-                ? _primaryBlue.withValues(alpha: 0.1)
-                : Colors.white,
+                ? colorScheme.primaryContainer
+                : colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isSelected ? _primaryBlue : Colors.grey.shade300,
+              color: isSelected ? colorScheme.primary : colorScheme.outline,
               width: isSelected ? 2 : 1,
             ),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: _primaryBlue.withValues(alpha: 0.15),
+                      color: colorScheme.primary.withValues(alpha: 0.15),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -364,8 +396,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 height: 48,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? _primaryBlue.withValues(alpha: 0.15)
-                      : Colors.grey.shade100,
+                      ? colorScheme.primary.withValues(alpha: 0.15)
+                      : colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
@@ -382,7 +414,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   language,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: isSelected ? _primaryBlue : const Color(0xFF1A1C1E),
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -394,12 +428,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: _primaryBlue,
+                    color: colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check_rounded,
-                    color: Colors.white,
+                    color: colorScheme.onPrimary,
                     size: 18,
                   ),
                 ),
@@ -420,6 +454,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     required ThemeData theme,
     required String semanticLabel,
   }) {
+    final colorScheme = theme.colorScheme;
     return Semantics(
       label: semanticLabel,
       child: SlideTransition(
@@ -447,7 +482,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   title,
                   style: theme.textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1A1C1E),
+                    color: colorScheme.onSurface,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -456,7 +491,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 Text(
                   description,
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey.shade600,
+                    color: colorScheme.onSurfaceVariant,
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,
@@ -480,6 +515,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildDot(int index) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isActive = index == _currentPage;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -488,13 +524,16 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       width: isActive ? 32 : 10,
       height: 10,
       decoration: BoxDecoration(
-        color: isActive ? _primaryBlue : _primaryBlue.withValues(alpha: 0.25),
+        color: isActive
+            ? colorScheme.primary
+            : colorScheme.primary.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(5),
       ),
     );
   }
 
   Widget _buildBottomButtons(AppLocalizations l10n, ThemeData theme) {
+    final colorScheme = theme.colorScheme;
     final isLastPage = _currentPage == _totalPages - 1;
 
     return Padding(
@@ -512,8 +551,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               child: ElevatedButton(
                 onPressed: _goToNextPage,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryBlue,
-                  foregroundColor: Colors.white,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: const StadiumBorder(),
                   elevation: 0,
@@ -536,7 +575,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               child: Text(
                 l10n.disclaimer,
                 style: TextStyle(
-                  color: Colors.grey.shade500,
+                  color: colorScheme.outline,
                   fontSize: 12,
                   height: 1.4,
                 ),

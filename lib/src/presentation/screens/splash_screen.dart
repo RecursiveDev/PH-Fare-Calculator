@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:ph_fare_calculator/src/core/di/injection.dart';
-import 'package:ph_fare_calculator/src/services/connectivity/connectivity_service.dart';
 import 'package:ph_fare_calculator/src/models/fare_formula.dart';
 import 'package:ph_fare_calculator/src/models/fare_result.dart';
 import 'package:ph_fare_calculator/src/models/saved_route.dart';
 import 'package:ph_fare_calculator/src/presentation/screens/main_screen.dart';
 import 'package:ph_fare_calculator/src/presentation/screens/onboarding_screen.dart';
+import 'package:ph_fare_calculator/src/presentation/widgets/app_logo_widget.dart';
 import 'package:ph_fare_calculator/src/repositories/fare_repository.dart';
+import 'package:ph_fare_calculator/src/services/connectivity/connectivity_service.dart';
 import 'package:ph_fare_calculator/src/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -37,10 +38,6 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _logoOpacity;
   late final Animation<double> _textOpacity;
   late final Animation<Offset> _textSlide;
-
-  // Brand colors from AppTheme
-  static const Color _primaryBlue = Color(0xFF0038A8);
-  static const Color _secondaryYellow = Color(0xFFFCD116);
 
   @override
   void initState() {
@@ -149,7 +146,7 @@ class _SplashScreenState extends State<SplashScreen>
 
       // 4. Settings
       final settingsService = getIt<SettingsService>();
-      await settingsService.getHighContrastEnabled();
+      await settingsService.getThemeMode();
 
       // 5. Check Onboarding
       final prefs = await SharedPreferences.getInstance();
@@ -190,56 +187,62 @@ class _SplashScreenState extends State<SplashScreen>
   void _showErrorScreen(Object error) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (context) => Scaffold(
-          body: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [_primaryBlue.withValues(alpha: 0.1), Colors.white],
-              ),
-            ),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFCE1126).withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.error_outline_rounded,
-                        size: 64,
-                        color: Color(0xFFCE1126),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Initialization Failed',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1A1C1E),
-                          ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Error: $error',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF757575),
-                      ),
-                    ),
+        builder: (context) {
+          final colorScheme = Theme.of(context).colorScheme;
+          return Scaffold(
+            body: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    colorScheme.primary.withValues(alpha: 0.1),
+                    colorScheme.surface,
                   ],
                 ),
               ),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: colorScheme.errorContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.error_outline_rounded,
+                          size: 64,
+                          color: colorScheme.error,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Initialization Failed',
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error: $error',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -259,8 +262,8 @@ class _SplashScreenState extends State<SplashScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                _primaryBlue,
-                _primaryBlue.withValues(alpha: 0.85),
+                colorScheme.primary,
+                colorScheme.primary.withValues(alpha: 0.85),
                 colorScheme.primary.withValues(alpha: 0.7),
               ],
               stops: const [0.0, 0.5, 1.0],
@@ -292,69 +295,32 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Widget _buildAnimatedLogo() {
-    return Semantics(
-      label: 'Application logo',
-      child: AnimatedBuilder(
-        animation: _logoController,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _logoScale.value,
-            child: Opacity(opacity: _logoOpacity.value, child: child),
-          );
-        },
-        child: Container(
-          width: 140,
-          height: 140,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [_primaryBlue, _primaryBlue.withValues(alpha: 0.8)],
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.directions_bus_rounded,
-                  size: 56,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: _logoController,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _logoScale.value,
+          child: Opacity(opacity: _logoOpacity.value, child: child),
+        );
+      },
+      child: const AppLogoWidget(size: AppLogoSize.large, showShadow: true),
     );
   }
 
   Widget _buildAnimatedTitle() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Semantics(
       label: 'PH Fare Calculator',
       child: SlideTransition(
         position: _textSlide,
         child: FadeTransition(
           opacity: _textOpacity,
-          child: const Text(
+          child: Text(
             'PH Fare Calculator',
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: colorScheme.onPrimary,
               letterSpacing: 0.5,
             ),
           ),
@@ -364,6 +330,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Widget _buildAnimatedTagline() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Semantics(
       label: 'Know your fare before you ride',
       child: SlideTransition(
@@ -375,7 +342,7 @@ class _SplashScreenState extends State<SplashScreen>
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w400,
-              color: Colors.white.withValues(alpha: 0.9),
+              color: colorScheme.onPrimary.withValues(alpha: 0.9),
               letterSpacing: 0.3,
             ),
           ),
@@ -385,6 +352,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Widget _buildLoadingIndicator() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Semantics(
       label: 'Loading application',
       child: Column(
@@ -397,9 +365,9 @@ class _SplashScreenState extends State<SplashScreen>
               builder: (context, child) {
                 return LinearProgressIndicator(
                   value: null,
-                  backgroundColor: Colors.white.withValues(alpha: 0.3),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    _secondaryYellow,
+                  backgroundColor: colorScheme.onPrimary.withValues(alpha: 0.3),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    colorScheme.secondary,
                   ),
                   minHeight: 4,
                   borderRadius: BorderRadius.circular(2),
@@ -412,7 +380,7 @@ class _SplashScreenState extends State<SplashScreen>
             'Loading...',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.8),
+              color: colorScheme.onPrimary.withValues(alpha: 0.8),
               fontWeight: FontWeight.w500,
             ),
           ),

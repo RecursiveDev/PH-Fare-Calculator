@@ -1,5 +1,10 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../core/constants/app_constants.dart';
 import '../../core/di/injection.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/discount_type.dart';
@@ -7,6 +12,7 @@ import '../../models/fare_formula.dart';
 import '../../models/transport_mode.dart';
 import '../../repositories/fare_repository.dart';
 import '../../services/settings_service.dart';
+import '../widgets/app_logo_widget.dart';
 
 /// Modern settings screen with grouped sections and Material 3 styling.
 /// Follows 8dp grid system and uses theme colors from AppTheme.
@@ -26,7 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   late final AnimationController _animationController;
 
   bool _isProvincialModeEnabled = false;
-  bool _isHighContrastEnabled = false;
+  String _themeMode = 'system';
   TrafficFactor _trafficFactor = TrafficFactor.medium;
   DiscountType _discountType = DiscountType.standard;
   Locale _currentLocale = const Locale('en');
@@ -35,9 +41,9 @@ class _SettingsScreenState extends State<SettingsScreen>
   Set<String> _hiddenTransportModes = {};
   Map<String, List<FareFormula>> _groupedFormulas = {};
 
-  // App version info
-  static const String _appVersion = '1.0.0';
-  static const String _buildNumber = '1';
+  // App version info (loaded dynamically from pubspec.yaml)
+  String _appVersion = '';
+  String _buildNumber = '';
 
   @override
   void initState() {
@@ -60,11 +66,25 @@ class _SettingsScreenState extends State<SettingsScreen>
   Future<void> _loadSettings() async {
     final provincialMode = await _settingsService.getProvincialMode();
     final trafficFactor = await _settingsService.getTrafficFactor();
-    final highContrast = await _settingsService.getHighContrastEnabled();
+    final themeMode = await _settingsService.getThemeMode();
     final discountType = await _settingsService.getUserDiscountType();
     final hiddenModes = await _settingsService.getHiddenTransportModes();
     final locale = await _settingsService.getLocale();
     final formulas = await _fareRepository.getAllFormulas();
+
+    // Load package info with fallback for test environment
+    String version = '2.0.0';
+    String buildNumber = '2';
+    try {
+      final packageInfo = await PackageInfo.fromPlatform().timeout(
+        const Duration(seconds: 1),
+        onTimeout: () => throw TimeoutException('Platform info timeout'),
+      );
+      version = packageInfo.version;
+      buildNumber = packageInfo.buildNumber;
+    } catch (_) {
+      // Use fallback values if platform info is unavailable (e.g., in tests)
+    }
 
     // Group formulas by mode
     final grouped = <String, List<FareFormula>>{};
@@ -78,12 +98,14 @@ class _SettingsScreenState extends State<SettingsScreen>
     if (mounted) {
       setState(() {
         _isProvincialModeEnabled = provincialMode;
-        _isHighContrastEnabled = highContrast;
+        _themeMode = themeMode;
         _trafficFactor = trafficFactor;
         _discountType = discountType;
         _currentLocale = locale;
         _hiddenTransportModes = hiddenModes;
         _groupedFormulas = grouped;
+        _appVersion = version;
+        _buildNumber = buildNumber;
         _isLoading = false;
       });
       _animationController.forward();
@@ -159,21 +181,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                   _buildSettingsCard(
                     context,
                     children: [
-                      _buildSwitchTile(
-                        context,
-                        title: AppLocalizations.of(
-                          context,
-                        )!.highContrastModeTitle,
-                        subtitle: AppLocalizations.of(
-                          context,
-                        )!.highContrastModeSubtitle,
-                        value: _isHighContrastEnabled,
-                        icon: Icons.contrast_rounded,
-                        onChanged: (value) async {
-                          setState(() => _isHighContrastEnabled = value);
-                          await _settingsService.setHighContrastEnabled(value);
-                        },
-                      ),
+                      _buildThemeModeTile(context),
                       const Divider(height: 1, indent: 56),
                       _buildLanguageTile(context),
                     ],
@@ -207,7 +215,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                         )!.trafficLowSubtitle,
                         value: TrafficFactor.low,
                         icon: Icons.speed_rounded,
-                        iconColor: Colors.green,
+                        iconColor: _getTrafficIconColor(
+                          context,
+                          TrafficFactor.low,
+                        ),
                       ),
                       _buildTrafficFactorTile(
                         context,
@@ -217,7 +228,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                         )!.trafficMediumSubtitle,
                         value: TrafficFactor.medium,
                         icon: Icons.speed_rounded,
-                        iconColor: Colors.orange,
+                        iconColor: _getTrafficIconColor(
+                          context,
+                          TrafficFactor.medium,
+                        ),
                       ),
                       _buildTrafficFactorTile(
                         context,
@@ -227,7 +241,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                         )!.trafficHighSubtitle,
                         value: TrafficFactor.high,
                         icon: Icons.speed_rounded,
-                        iconColor: Colors.red,
+                        iconColor: _getTrafficIconColor(
+                          context,
+                          TrafficFactor.high,
+                        ),
                       ),
                     ],
                   ),
@@ -315,12 +332,40 @@ class _SettingsScreenState extends State<SettingsScreen>
                   _buildSettingsCard(
                     context,
                     children: [
-                      _buildAboutTile(
-                        context,
-                        title: 'PH Fare Calculator',
-                        subtitle: 'Version $_appVersion (Build $_buildNumber)',
-                        icon: Icons.calculate_rounded,
+                      // App logo and name
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            const AppLogoWidget(
+                              size: AppLogoSize.medium,
+                              showShadow: false,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'PH Fare Calculator',
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Version $_appVersion (Build $_buildNumber)',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
                       const Divider(height: 1, indent: 56),
                       _buildAboutTile(
                         context,
@@ -332,6 +377,16 @@ class _SettingsScreenState extends State<SettingsScreen>
                           applicationName: 'PH Fare Calculator',
                           applicationVersion: '$_appVersion+$_buildNumber',
                         ),
+                      ),
+                      const Divider(height: 1, indent: 56),
+                      _buildAboutTile(
+                        context,
+                        title: AppLocalizations.of(context)!.sourceCodeTitle,
+                        subtitle: AppLocalizations.of(
+                          context,
+                        )!.sourceCodeSubtitle,
+                        icon: Icons.code_rounded,
+                        onTap: () => _launchRepositoryUrl(),
                       ),
                     ],
                   ),
@@ -393,6 +448,22 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
+  /// Gets theme-aware traffic icon color based on traffic factor.
+  Color _getTrafficIconColor(BuildContext context, TrafficFactor factor) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    switch (factor) {
+      case TrafficFactor.low:
+        // Green - darker in light mode, lighter pastel in dark mode
+        return isDark ? const Color(0xFFA8D5AA) : const Color(0xFF2E7D32);
+      case TrafficFactor.medium:
+        // Orange - darker in light mode, lighter pastel in dark mode
+        return isDark ? const Color(0xFFE8CFA8) : const Color(0xFFE65100);
+      case TrafficFactor.high:
+        // Red - darker in light mode, lighter pastel in dark mode
+        return isDark ? const Color(0xFFE8AEAB) : const Color(0xFFC62828);
+    }
+  }
+
   /// Builds a switch tile with icon.
   Widget _buildSwitchTile(
     BuildContext context, {
@@ -430,8 +501,107 @@ class _SettingsScreenState extends State<SettingsScreen>
           ),
           child: Icon(icon, color: colorScheme.onPrimaryContainer, size: 24),
         ),
-        activeTrackColor: colorScheme.primary.withValues(alpha: 0.5),
+        activeTrackColor: colorScheme.primary,
+        activeThumbColor: colorScheme.onPrimary,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      ),
+    );
+  }
+
+  /// Builds a theme mode selection tile with segmented button.
+  Widget _buildThemeModeTile(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    String getThemeModeLabel(String mode) {
+      switch (mode) {
+        case 'light':
+          return l10n.themeModeLight;
+        case 'dark':
+          return l10n.themeModeDark;
+        case 'system':
+        default:
+          return l10n.themeModeSystem;
+      }
+    }
+
+    return Semantics(
+      label: l10n.themeModeTitle,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.brightness_6_rounded,
+                    color: colorScheme.onPrimaryContainer,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.themeModeTitle,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.themeModeSubtitle,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<String>(
+                segments: [
+                  ButtonSegment<String>(
+                    value: 'system',
+                    label: Text(getThemeModeLabel('system')),
+                    icon: const Icon(Icons.phone_android_rounded, size: 18),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'light',
+                    label: Text(getThemeModeLabel('light')),
+                    icon: const Icon(Icons.light_mode_rounded, size: 18),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'dark',
+                    label: Text(getThemeModeLabel('dark')),
+                    icon: const Icon(Icons.dark_mode_rounded, size: 18),
+                  ),
+                ],
+                selected: {_themeMode},
+                onSelectionChanged: (Set<String> newSelection) async {
+                  final newMode = newSelection.first;
+                  setState(() => _themeMode = newMode);
+                  await _settingsService.setThemeMode(newMode);
+                },
+                style: ButtonStyle(visualDensity: VisualDensity.compact),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -860,7 +1030,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                   },
                   contentPadding: EdgeInsets.zero,
                   dense: true,
-                  activeTrackColor: colorScheme.primary.withValues(alpha: 0.5),
+                  activeTrackColor: colorScheme.primary,
+                  activeThumbColor: colorScheme.onPrimary,
                 );
               }),
             ],
@@ -914,6 +1085,14 @@ class _SettingsScreenState extends State<SettingsScreen>
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),
     );
+  }
+
+  /// Launches the GitHub repository URL in an external browser.
+  Future<void> _launchRepositoryUrl() async {
+    final uri = Uri.parse(AppConstants.repositoryUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   IconData _getIconForCategory(String category) {
