@@ -89,7 +89,7 @@ class _OfflineMenuScreenState extends State<OfflineMenuScreen>
         icon: Icons.percent_rounded,
         iconBackgroundColor: Colors.green.withValues(alpha: 0.12),
         iconColor: Colors.green,
-        destination: const ReferenceScreen(),
+        destination: const ReferenceScreen(initialTabIndex: 3),
       ),
     ];
   }

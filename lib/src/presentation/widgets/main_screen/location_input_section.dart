@@ -30,9 +30,33 @@ class LocationInputSection extends StatelessWidget {
     required this.onOpenMapPicker,
   });
 
+  // Fixed dimensions based on InputDecoration contentPadding and text style
+  // TextField height ≈ contentPadding.vertical * 2 + text line height ≈ 12*2 + 24 = 48
+  // Gap between fields = 12
+  // Total height = 48 + 12 + 48 = 108
+  // Origin icon center is at 24 (half of first field)
+  // Destination icon (16px) center is at 108 - 8 = 100
+  // Line should span from below origin circle (24 + 6 = 30) to above destination pin (100 - 8 = 92)
+  // Line height = 92 - 30 = 62
+  static const double _inputFieldHeight = 48;
+  static const double _fieldGap = 12;
+  static const double _originCircleSize = 12;
+  static const double _destinationIconSize = 16;
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
+    // Total height of both fields + gap
+    const totalFieldsHeight = _inputFieldHeight * 2 + _fieldGap;
+
+    // Calculate line height to connect from origin circle bottom to destination icon top
+    // Origin circle center at: _inputFieldHeight / 2 = 24
+    // Origin circle bottom at: 24 + 6 = 30
+    // Destination icon center at: _inputFieldHeight + _fieldGap + _inputFieldHeight / 2 = 84
+    // Destination icon top at: 84 - 8 = 76
+    // Line height = 76 - 30 = 46
+    const lineHeight = 46.0;
 
     return Card(
       elevation: 0,
@@ -45,27 +69,33 @@ class LocationInputSection extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Route Indicator
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
+            // Route Indicator - fixed height column with calculated positions
+            SizedBox(
+              height: totalFieldsHeight,
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
+                  // Spacer to center origin circle with first field
+                  SizedBox(height: (_inputFieldHeight - _originCircleSize) / 2),
+                  // Origin circle indicator
                   Container(
-                    width: 12,
-                    height: 12,
+                    width: _originCircleSize,
+                    height: _originCircleSize,
                     decoration: BoxDecoration(
                       color: colorScheme.primary,
                       shape: BoxShape.circle,
                     ),
                   ),
+                  // Connecting line
                   Container(
                     width: 2,
-                    height: 68,
+                    height: lineHeight,
                     color: colorScheme.outlineVariant,
                   ),
+                  // Destination pin indicator
                   Icon(
                     Icons.location_on,
-                    size: 16,
+                    size: _destinationIconSize,
                     color: colorScheme.tertiary,
                   ),
                 ],
@@ -75,51 +105,61 @@ class LocationInputSection extends StatelessWidget {
             // Input Fields
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _LocationField(
-                    label: 'Origin',
-                    controller: originController,
-                    isOrigin: true,
-                    isLoadingLocation: isLoadingLocation,
-                    onSearchLocations: (query) =>
-                        onSearchLocations(query, true),
-                    onLocationSelected: onOriginSelected,
-                    onUseCurrentLocation: onUseCurrentLocation,
-                    onOpenMapPicker: () => onOpenMapPicker(true),
+                  SizedBox(
+                    height: _inputFieldHeight,
+                    child: _LocationField(
+                      label: 'Origin',
+                      controller: originController,
+                      isOrigin: true,
+                      isLoadingLocation: isLoadingLocation,
+                      onSearchLocations: (query) =>
+                          onSearchLocations(query, true),
+                      onLocationSelected: onOriginSelected,
+                      onUseCurrentLocation: onUseCurrentLocation,
+                      onOpenMapPicker: () => onOpenMapPicker(true),
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  _LocationField(
-                    label: 'Destination',
-                    controller: destinationController,
-                    isOrigin: false,
-                    isLoadingLocation: false,
-                    onSearchLocations: (query) =>
-                        onSearchLocations(query, false),
-                    onLocationSelected: onDestinationSelected,
-                    onUseCurrentLocation: null,
-                    onOpenMapPicker: () => onOpenMapPicker(false),
+                  const SizedBox(height: _fieldGap),
+                  SizedBox(
+                    height: _inputFieldHeight,
+                    child: _LocationField(
+                      label: 'Destination',
+                      controller: destinationController,
+                      isOrigin: false,
+                      isLoadingLocation: false,
+                      onSearchLocations: (query) =>
+                          onSearchLocations(query, false),
+                      onLocationSelected: onDestinationSelected,
+                      onUseCurrentLocation: null,
+                      onOpenMapPicker: () => onOpenMapPicker(false),
+                    ),
                   ),
                 ],
               ),
             ),
-            // Swap Button
-            Padding(
-              padding: const EdgeInsets.only(left: 8, top: 12),
-              child: Semantics(
-                label: 'Swap origin and destination',
-                button: true,
-                child: IconButton(
-                  icon: Icon(
-                    Icons.swap_vert_rounded,
-                    color: colorScheme.primary,
-                  ),
-                  onPressed: onSwapLocations,
-                  style: IconButton.styleFrom(
-                    backgroundColor: colorScheme.primaryContainer.withValues(
-                      alpha: 0.3,
+            const SizedBox(width: 8),
+            // Swap Button - centered vertically relative to both input fields
+            SizedBox(
+              height: totalFieldsHeight,
+              child: Center(
+                child: Semantics(
+                  label: 'Swap origin and destination',
+                  button: true,
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.swap_vert_rounded,
+                      color: colorScheme.primary,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    onPressed: onSwapLocations,
+                    style: IconButton.styleFrom(
+                      backgroundColor: colorScheme.primaryContainer.withValues(
+                        alpha: 0.3,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
