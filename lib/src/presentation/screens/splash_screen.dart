@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:ph_fare_calculator/src/core/di/injection.dart';
+import 'package:ph_fare_calculator/src/services/connectivity/connectivity_service.dart';
 import 'package:ph_fare_calculator/src/models/fare_formula.dart';
 import 'package:ph_fare_calculator/src/models/fare_result.dart';
 import 'package:ph_fare_calculator/src/models/saved_route.dart';
@@ -140,6 +141,11 @@ class _SplashScreenState extends State<SplashScreen>
       // 3. Repository Initialization & Seeding
       final fareRepository = getIt<FareRepository>();
       await fareRepository.seedDefaults();
+
+      // 3b. Initialize ConnectivityService
+      // This is crucial to start listening to network changes early
+      final connectivityService = getIt<ConnectivityService>();
+      await connectivityService.initialize();
 
       // 4. Settings
       final settingsService = getIt<SettingsService>();
