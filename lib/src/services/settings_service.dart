@@ -15,6 +15,8 @@ class SettingsService {
   static const String _keyUserDiscountType = 'user_discount_type';
   static const String _keyHasSetDiscountType = 'has_set_discount_type';
   static const String _keyHiddenTransportModes = 'hidden_transport_modes';
+  static const String _keyHasSetTransportModePreferences =
+      'has_set_transport_mode_preferences';
   static const String _keyLastLatitude = 'last_known_latitude';
   static const String _keyLastLongitude = 'last_known_longitude';
   static const String _keyLastLocationName = 'last_known_location_name';
@@ -143,7 +145,17 @@ class SettingsService {
     return prefs.getBool(_keyHasSetDiscountType) ?? false;
   }
 
-  /// Get the list of hidden transport modes (stored as "Mode::SubType" strings)
+  /// Check if the user has ever set their transport mode preferences.
+  /// New users (false) should have all modes disabled by default.
+  Future<bool> hasSetTransportModePreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyHasSetTransportModePreferences) ?? false;
+  }
+
+  /// Get the list of hidden transport modes (stored as "Mode::SubType" strings).
+  /// NOTE: For new users who haven't set preferences yet, this returns an empty set.
+  /// The caller should use hasSetTransportModePreferences() to check if all modes
+  /// should be treated as hidden (disabled) by default.
   Future<Set<String>> getHiddenTransportModes() async {
     final prefs = await SharedPreferences.getInstance();
     final hiddenList = prefs.getStringList(_keyHiddenTransportModes);
@@ -164,10 +176,18 @@ class SettingsService {
     }
 
     await prefs.setStringList(_keyHiddenTransportModes, hiddenModes.toList());
+    // Mark that the user has now set their transport mode preferences
+    await prefs.setBool(_keyHasSetTransportModePreferences, true);
   }
 
-  /// Check if a specific mode-subtype combination is hidden
+  /// Check if a specific mode-subtype combination is hidden.
+  /// Takes into account whether user has set preferences (new users = all hidden).
   Future<bool> isTransportModeHidden(String mode, String subType) async {
+    final hasSetPrefs = await hasSetTransportModePreferences();
+    // For new users who haven't set any preferences, all modes are hidden by default
+    if (!hasSetPrefs) {
+      return true;
+    }
     final hiddenModes = await getHiddenTransportModes();
     return hiddenModes.contains('$mode::$subType');
   }

@@ -173,7 +173,9 @@ class LocationInputSection extends StatelessWidget {
 }
 
 /// Internal widget for individual location input field with autocomplete.
-class _LocationField extends StatelessWidget {
+/// Now a StatefulWidget to track search loading state using ValueNotifier
+/// to avoid interfering with Autocomplete's internal state.
+class _LocationField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final bool isOrigin;
@@ -195,6 +197,37 @@ class _LocationField extends StatelessWidget {
   });
 
   @override
+  State<_LocationField> createState() => _LocationFieldState();
+}
+
+class _LocationFieldState extends State<_LocationField> {
+  final ValueNotifier<bool> _isSearching = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _isSearching.dispose();
+    super.dispose();
+  }
+
+  Future<List<Location>> _handleOptionsBuilder(String query) async {
+    if (query.trim().isEmpty) {
+      _isSearching.value = false;
+      return const <Location>[];
+    }
+
+    // Set loading state before fetching
+    _isSearching.value = true;
+
+    try {
+      final results = await widget.onSearchLocations(query);
+      return results;
+    } finally {
+      // Clear loading state after fetching (success or error)
+      _isSearching.value = false;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -202,14 +235,11 @@ class _LocationField extends StatelessWidget {
       builder: (context, constraints) {
         return Autocomplete<Location>(
           displayStringForOption: (Location option) => option.name,
-          initialValue: TextEditingValue(text: controller.text),
+          initialValue: TextEditingValue(text: widget.controller.text),
           optionsBuilder: (TextEditingValue textEditingValue) async {
-            if (textEditingValue.text.trim().isEmpty) {
-              return const Iterable<Location>.empty();
-            }
-            return onSearchLocations(textEditingValue.text);
+            return _handleOptionsBuilder(textEditingValue.text);
           },
-          onSelected: onLocationSelected,
+          onSelected: widget.onLocationSelected,
           fieldViewBuilder:
               (
                 BuildContext context,
@@ -218,64 +248,87 @@ class _LocationField extends StatelessWidget {
                 VoidCallback onFieldSubmitted,
               ) {
                 // Sync controller text
-                if (isOrigin && controller.text != textEditingController.text) {
-                  textEditingController.text = controller.text;
+                if (widget.isOrigin &&
+                    widget.controller.text != textEditingController.text) {
+                  textEditingController.text = widget.controller.text;
                 }
                 return Semantics(
-                  label: 'Input for $label location',
+                  label: 'Input for ${widget.label} location',
                   textField: true,
-                  child: TextField(
-                    controller: textEditingController,
-                    focusNode: focusNode,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    decoration: InputDecoration(
-                      hintText: label,
-                      filled: true,
-                      fillColor: colorScheme.surfaceContainerLowest,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      suffixIcon: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isOrigin && isLoadingLocation)
-                            const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            )
-                          else if (isOrigin && onUseCurrentLocation != null)
-                            IconButton(
-                              icon: Icon(
-                                Icons.my_location,
-                                color: colorScheme.primary,
-                                size: 20,
-                              ),
-                              tooltip: 'Use my current location',
-                              onPressed: onUseCurrentLocation,
-                            ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.map_outlined,
-                              color: colorScheme.onSurfaceVariant,
-                              size: 20,
-                            ),
-                            tooltip: 'Select from map',
-                            onPressed: onOpenMapPicker,
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: _isSearching,
+                    builder: (context, isSearching, child) {
+                      return TextField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                        decoration: InputDecoration(
+                          hintText: widget.label,
+                          filled: true,
+                          fillColor: colorScheme.surfaceContainerLowest,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
                           ),
-                        ],
-                      ),
-                    ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          suffixIcon: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Show loading indicator when searching for suggestions
+                              if (isSearching)
+                                Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: colorScheme.primary,
+                                    ),
+                                  ),
+                                )
+                              // Show current location loading indicator (origin only)
+                              else if (widget.isOrigin &&
+                                  widget.isLoadingLocation)
+                                const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                )
+                              // Show current location button (origin only)
+                              else if (widget.isOrigin &&
+                                  widget.onUseCurrentLocation != null)
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.my_location,
+                                    color: colorScheme.primary,
+                                    size: 20,
+                                  ),
+                                  tooltip: 'Use my current location',
+                                  onPressed: widget.onUseCurrentLocation,
+                                ),
+                              IconButton(
+                                icon: Icon(
+                                  Icons.map_outlined,
+                                  color: colorScheme.onSurfaceVariant,
+                                  size: 20,
+                                ),
+                                tooltip: 'Select from map',
+                                onPressed: widget.onOpenMapPicker,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 );
               },

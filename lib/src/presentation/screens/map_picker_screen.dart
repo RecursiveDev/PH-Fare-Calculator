@@ -3,6 +3,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/di/injection.dart';
+import '../../core/errors/failures.dart';
+import '../../models/location.dart';
+import '../../services/geocoding/geocoding_service.dart';
 import '../../services/offline/offline_map_service.dart';
 import '../widgets/offline_indicator.dart';
 
@@ -29,11 +32,11 @@ class MapPickerScreen extends StatefulWidget {
 class _MapPickerScreenState extends State<MapPickerScreen>
     with SingleTickerProviderStateMixin {
   late final MapController _mapController;
+  late final GeocodingService _geocodingService;
   LatLng? _selectedLocation;
   bool _isMapMoving = false;
+  final ValueNotifier<bool> _isSearchingLocation = ValueNotifier<bool>(false);
   String _addressText = 'Move map to select location';
-  final TextEditingController _searchController = TextEditingController();
-  bool _isSearching = false;
 
   // Animation controller for pin bounce effect
   late final AnimationController _pinAnimationController;
@@ -47,6 +50,7 @@ class _MapPickerScreenState extends State<MapPickerScreen>
   void initState() {
     super.initState();
     _mapController = MapController();
+    _geocodingService = getIt<GeocodingService>();
     _selectedLocation = widget.initialLocation ?? _defaultCenter;
 
     // Initialize pin animation controller
@@ -80,7 +84,7 @@ class _MapPickerScreenState extends State<MapPickerScreen>
   @override
   void dispose() {
     _pinAnimationController.dispose();
-    _searchController.dispose();
+    _isSearchingLocation.dispose();
     super.dispose();
   }
 
@@ -128,11 +132,36 @@ class _MapPickerScreenState extends State<MapPickerScreen>
     _updateAddress(_defaultCenter);
   }
 
-  void _onSearchSubmitted(String query) {
-    // In a real app, this would search for the location
-    // For now, we just close the search
+  Future<List<Location>> _searchLocations(String query) async {
+    if (query.trim().isEmpty) {
+      _isSearchingLocation.value = false;
+      return [];
+    }
+
+    // Set loading state before fetching
+    _isSearchingLocation.value = true;
+
+    try {
+      final results = await _geocodingService.getLocations(query);
+      return results;
+    } on Failure {
+      // Handle failures gracefully - return empty list
+      return [];
+    } catch (_) {
+      // Handle unexpected errors gracefully
+      return [];
+    } finally {
+      // Clear loading state after fetching
+      _isSearchingLocation.value = false;
+    }
+  }
+
+  void _onLocationSelected(Location location) {
+    final newLatLng = LatLng(location.latitude, location.longitude);
+    _mapController.move(newLatLng, 15.0);
     setState(() {
-      _isSearching = false;
+      _selectedLocation = newLatLng;
+      _addressText = location.name;
     });
     FocusScope.of(context).unfocus();
   }
@@ -368,54 +397,139 @@ class _MapPickerScreenState extends State<MapPickerScreen>
       child: Semantics(
         label: 'Search for a location',
         textField: true,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: _searchController,
-            onTap: () => setState(() => _isSearching = true),
-            onSubmitted: _onSearchSubmitted,
-            decoration: InputDecoration(
-              hintText: 'Search location...',
-              hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              ),
-              prefixIcon: Icon(
-                Icons.search_rounded,
-                color: colorScheme.primary,
-              ),
-              suffixIcon: _isSearching || _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(
-                        Icons.close_rounded,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _isSearching = false);
-                        FocusScope.of(context).unfocus();
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return Autocomplete<Location>(
+                  displayStringForOption: (Location option) => option.name,
+                  optionsBuilder: (TextEditingValue textEditingValue) async {
+                    if (textEditingValue.text.trim().isEmpty) {
+                      return const Iterable<Location>.empty();
+                    }
+                    return _searchLocations(textEditingValue.text);
+                  },
+                  onSelected: _onLocationSelected,
+                  fieldViewBuilder:
+                      (
+                        BuildContext context,
+                        TextEditingController textEditingController,
+                        FocusNode focusNode,
+                        VoidCallback onFieldSubmitted,
+                      ) {
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ValueListenableBuilder<bool>(
+                            valueListenable: _isSearchingLocation,
+                            builder: (context, isSearching, child) {
+                              return TextField(
+                                controller: textEditingController,
+                                focusNode: focusNode,
+                                decoration: InputDecoration(
+                                  hintText: 'Search location...',
+                                  hintStyle: theme.textTheme.bodyLarge
+                                      ?.copyWith(
+                                        color: colorScheme.onSurfaceVariant
+                                            .withValues(alpha: 0.6),
+                                      ),
+                                  prefixIcon: Icon(
+                                    Icons.search_rounded,
+                                    color: colorScheme.primary,
+                                  ),
+                                  suffixIcon: isSearching
+                                      ? Padding(
+                                          padding: const EdgeInsets.all(12),
+                                          child: SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: colorScheme.primary,
+                                            ),
+                                          ),
+                                        )
+                                      : (focusNode.hasFocus ||
+                                            textEditingController
+                                                .text
+                                                .isNotEmpty)
+                                      ? IconButton(
+                                          icon: Icon(
+                                            Icons.close_rounded,
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                          onPressed: () {
+                                            textEditingController.clear();
+                                            FocusScope.of(context).unfocus();
+                                          },
+                                        )
+                                      : null,
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
                       },
-                    )
-                  : null,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
+                  optionsViewBuilder: (context, onSelected, options) {
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        elevation: 4,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: constraints.maxWidth,
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shrinkWrap: true,
+                            itemCount: options.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              final Location option = options.elementAt(index);
+                              return ListTile(
+                                leading: Icon(
+                                  Icons.location_on_outlined,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                title: Text(
+                                  option.name,
+                                  style: theme.textTheme.bodyMedium,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () => onSelected(option),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
-          ),
+          ],
         ),
       ),
     );

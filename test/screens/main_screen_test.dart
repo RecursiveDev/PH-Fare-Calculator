@@ -185,7 +185,14 @@ void main() {
       const Duration(milliseconds: 900),
     ); // wait for autocomplete debounce (800ms) + buffer
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Luneta').last); // Select from options
+    // Find the option in the dropdown list tile (not the TextField)
+    final listTileFinder = find.descendant(
+      of: find.byType(ListTile),
+      matching: find.text('Luneta'),
+    );
+    if (listTileFinder.evaluate().isNotEmpty) {
+      await tester.tap(listTileFinder.first);
+    }
     await tester.pumpAndSettle(); // Close options
 
     // 2. Search and select Destination
@@ -198,7 +205,14 @@ void main() {
       const Duration(milliseconds: 900),
     ); // wait for autocomplete debounce (800ms) + buffer
     await tester.pumpAndSettle();
-    await tester.tap(find.text('MOA').last);
+    // Find the option in the dropdown list tile (not the TextField)
+    final moaListTileFinder = find.descendant(
+      of: find.byType(ListTile),
+      matching: find.text('MOA'),
+    );
+    if (moaListTileFinder.evaluate().isNotEmpty) {
+      await tester.tap(moaListTileFinder.first);
+    }
     await tester.pumpAndSettle();
 
     // 3. Tap Calculate

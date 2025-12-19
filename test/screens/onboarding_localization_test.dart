@@ -89,6 +89,12 @@ class FakeSettingsService implements SettingsService {
     return hasSetDiscount;
   }
 
+  bool hasSetTransportModePrefs = true; // Default true for existing tests
+  @override
+  Future<bool> hasSetTransportModePreferences() async {
+    return hasSetTransportModePrefs;
+  }
+
   @override
   Future<Set<String>> getEnabledModes() async {
     return hiddenTransportModes;
