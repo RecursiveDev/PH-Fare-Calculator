@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -36,7 +38,15 @@ class _MapPickerScreenState extends State<MapPickerScreen>
   LatLng? _selectedLocation;
   bool _isMapMoving = false;
   final ValueNotifier<bool> _isSearchingLocation = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> _isLoadingAddress = ValueNotifier<bool>(false);
   String _addressText = 'Move map to select location';
+
+  /// Debounce timer for reverse geocoding to avoid excessive API calls
+  /// during rapid map movements
+  Timer? _geocodeDebounceTimer;
+
+  /// Debounce duration for reverse geocoding (400ms)
+  static const Duration _geocodeDebounceDuration = Duration(milliseconds: 400);
 
   // Animation controller for pin bounce effect
   late final AnimationController _pinAnimationController;
@@ -83,8 +93,10 @@ class _MapPickerScreenState extends State<MapPickerScreen>
 
   @override
   void dispose() {
+    _geocodeDebounceTimer?.cancel();
     _pinAnimationController.dispose();
     _isSearchingLocation.dispose();
+    _isLoadingAddress.dispose();
     super.dispose();
   }
 
@@ -92,13 +104,15 @@ class _MapPickerScreenState extends State<MapPickerScreen>
     if (event is MapEventMoveStart) {
       setState(() => _isMapMoving = true);
       _pinAnimationController.forward();
+      // Cancel any pending geocode request when movement starts
+      _geocodeDebounceTimer?.cancel();
     } else if (event is MapEventMoveEnd) {
       setState(() {
         _isMapMoving = false;
         _selectedLocation = _mapController.camera.center;
       });
       _pinAnimationController.reverse();
-      _updateAddress(_mapController.camera.center);
+      _debouncedUpdateAddress(_mapController.camera.center);
     } else if (event is MapEventMove) {
       // Update position during movement
       setState(() {
@@ -107,13 +121,46 @@ class _MapPickerScreenState extends State<MapPickerScreen>
     }
   }
 
-  void _updateAddress(LatLng location) {
-    // In a real app, this would call a geocoding service
-    // For now, we display the coordinates in a formatted way
-    setState(() {
-      _addressText =
-          '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}';
+  /// Debounced reverse geocoding to reduce API calls during rapid map movements.
+  /// Cancels any pending request and schedules a new one after the debounce period.
+  void _debouncedUpdateAddress(LatLng location) {
+    // Cancel any existing pending request
+    _geocodeDebounceTimer?.cancel();
+
+    // Show loading indicator immediately for better UX
+    _isLoadingAddress.value = true;
+
+    // Schedule the actual geocoding after the debounce period
+    _geocodeDebounceTimer = Timer(_geocodeDebounceDuration, () {
+      _updateAddress(location);
     });
+  }
+
+  void _updateAddress(LatLng location) async {
+    // Perform reverse geocoding to get the human-readable address
+    _isLoadingAddress.value = true;
+    
+    try {
+      final address = await _geocodingService.getAddressFromLatLng(
+        location.latitude,
+        location.longitude,
+      );
+      if (mounted) {
+        setState(() {
+          _addressText = address.name;
+        });
+      }
+    } catch (e) {
+      // Fallback to coordinates if geocoding fails
+      if (mounted) {
+        setState(() {
+          _addressText =
+              '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}';
+        });
+      }
+    } finally {
+      _isLoadingAddress.value = false;
+    }
   }
 
   void _confirmLocation() {
@@ -610,19 +657,56 @@ class _MapPickerScreenState extends State<MapPickerScreen>
                             const SizedBox(height: 4),
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 200),
-                              child: Text(
-                                _isMapMoving ? 'Moving...' : _addressText,
-                                key: ValueKey(
-                                  _isMapMoving ? 'moving' : _addressText,
-                                ),
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: _isMapMoving
-                                      ? colorScheme.onSurfaceVariant
-                                      : colorScheme.onSurface,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                              child: ValueListenableBuilder<bool>(
+                                valueListenable: _isLoadingAddress,
+                                builder: (context, isLoading, child) {
+                                  if (_isMapMoving) {
+                                    return Text(
+                                      'Moving...',
+                                      key: const ValueKey('moving'),
+                                      style: theme.textTheme.bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    );
+                                  } else if (isLoading) {
+                                    return Row(
+                                      key: const ValueKey('loading'),
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: colorScheme.primary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Getting address...',
+                                          style: theme.textTheme.bodyLarge?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  } else {
+                                    return Text(
+                                      _addressText,
+                                      key: ValueKey(_addressText),
+                                      style: theme.textTheme.bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurface,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    );
+                                  }
+                                },
                               ),
                             ),
                           ],

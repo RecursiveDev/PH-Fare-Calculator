@@ -72,16 +72,27 @@ class _TransportModeSelectionModalState
   }
 
   /// Loads saved transport mode preferences and initializes selected modes.
-  /// Modes that are NOT in the hidden set should be marked as selected.
+  /// For new users who haven't set preferences, use default enabled modes.
+  /// For existing users, modes that are NOT in the hidden set should be selected.
   Future<void> _loadSavedPreferences() async {
+    final hasSetPrefs = await widget.settingsService.hasSetTransportModePreferences();
     final hiddenModes = await widget.settingsService.getHiddenTransportModes();
 
     setState(() {
       for (final formula in widget.availableFormulas) {
         final modeSubTypeKey = '${formula.mode}::${formula.subType}';
-        // Mode is selected if it's NOT hidden
-        if (!hiddenModes.contains(modeSubTypeKey)) {
-          _selectedModes.add(modeSubTypeKey);
+        
+        if (!hasSetPrefs) {
+          // New user - use default enabled modes
+          final defaultModes = SettingsService.getDefaultEnabledModes();
+          if (defaultModes.contains(modeSubTypeKey)) {
+            _selectedModes.add(modeSubTypeKey);
+          }
+        } else {
+          // Existing user - mode is selected if it's NOT hidden
+          if (!hiddenModes.contains(modeSubTypeKey)) {
+            _selectedModes.add(modeSubTypeKey);
+          }
         }
       }
     });

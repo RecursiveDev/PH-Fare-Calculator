@@ -502,9 +502,20 @@ class StorageInfo {
   /// Available storage in GB.
   double get availableGB => availableBytes / (1024 * 1024 * 1024);
 
-  /// Total used percentage.
-  double get usedPercentage =>
+  /// Total device storage used percentage (for informational purposes).
+  double get deviceUsedPercentage =>
       totalBytes > 0 ? (totalBytes - availableBytes) / totalBytes : 0.0;
+
+  /// Map cache usage as a percentage of total usable space (cache + available).
+  /// This is what the storage bar should display:
+  /// - When cache is 0 and available is 10GB, bar shows nearly empty (0%)
+  /// - When cache is 5GB and available is 5GB, bar shows 50%
+  /// - When cache is 10GB and available is 0, bar shows 100%
+  double get usedPercentage {
+    final totalUsableSpace = mapCacheBytes + availableBytes;
+    if (totalUsableSpace <= 0) return 0.0;
+    return mapCacheBytes / totalUsableSpace;
+  }
 
   /// Formatted string for map cache size.
   String get mapCacheFormatted {

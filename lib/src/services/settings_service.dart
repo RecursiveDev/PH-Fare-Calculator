@@ -152,6 +152,20 @@ class SettingsService {
     return prefs.getBool(_keyHasSetTransportModePreferences) ?? false;
   }
 
+  /// Get the default enabled transport modes for new users.
+  /// Returns mode-subtype keys in format "Mode::SubType".
+  /// Default modes: Jeepney (Traditional, Modern), Bus (Traditional, Aircon), Taxi (White Regular).
+  /// These keys must match exactly with the sub_type values in fare_formulas.json.
+  static Set<String> getDefaultEnabledModes() {
+    return {
+      'Jeepney::Traditional',
+      'Jeepney::Modern (PUJ)',
+      'Bus::Traditional',
+      'Bus::Aircon',
+      'Taxi::White (Regular)',
+    };
+  }
+
   /// Get the list of hidden transport modes (stored as "Mode::SubType" strings).
   /// NOTE: For new users who haven't set preferences yet, this returns an empty set.
   /// The caller should use hasSetTransportModePreferences() to check if all modes
@@ -181,15 +195,20 @@ class SettingsService {
   }
 
   /// Check if a specific mode-subtype combination is hidden.
-  /// Takes into account whether user has set preferences (new users = all hidden).
+  /// Takes into account whether user has set preferences.
+  /// For new users who haven't set preferences, only default modes are enabled.
   Future<bool> isTransportModeHidden(String mode, String subType) async {
     final hasSetPrefs = await hasSetTransportModePreferences();
-    // For new users who haven't set any preferences, all modes are hidden by default
+    final modeKey = '$mode::$subType';
+    
+    // For new users who haven't set any preferences, use default enabled modes
     if (!hasSetPrefs) {
-      return true;
+      final defaultModes = getDefaultEnabledModes();
+      // If the mode is in the default enabled set, it's NOT hidden
+      return !defaultModes.contains(modeKey);
     }
     final hiddenModes = await getHiddenTransportModes();
-    return hiddenModes.contains('$mode::$subType');
+    return hiddenModes.contains(modeKey);
   }
 
   /// Get the list of enabled transport modes (opposite of hidden modes)

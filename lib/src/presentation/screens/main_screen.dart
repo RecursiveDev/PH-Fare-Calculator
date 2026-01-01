@@ -83,6 +83,7 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadTransportModeCounts() async {
     try {
       final allFormulas = await _fareRepository.getAllFormulas();
+      final hasSetPrefs = await _settingsService.hasSetTransportModePreferences();
       final hiddenModes = await _settingsService.getHiddenTransportModes();
 
       // Count unique mode-subtype combinations
@@ -91,9 +92,15 @@ class _MainScreenState extends State<MainScreen> {
         allModeKeys.add('${formula.mode}::${formula.subType}');
       }
 
-      final enabledCount = allModeKeys
-          .where((key) => !hiddenModes.contains(key))
-          .length;
+      int enabledCount;
+      if (!hasSetPrefs) {
+        // New user - count default enabled modes that exist in formulas
+        final defaultModes = SettingsService.getDefaultEnabledModes();
+        enabledCount = allModeKeys.where((key) => defaultModes.contains(key)).length;
+      } else {
+        // Existing user - count modes not in hidden set
+        enabledCount = allModeKeys.where((key) => !hiddenModes.contains(key)).length;
+      }
 
       if (mounted) {
         setState(() {

@@ -609,9 +609,12 @@ void main() {
     });
 
     test('usedPercentage returns correct value', () {
-      final usedBytes = 34359738368 - 5368709120; // total - available
-      final expectedPercentage = usedBytes / 34359738368;
-      expect(storageInfo.usedPercentage, closeTo(expectedPercentage, 0.01));
+      // usedPercentage should represent map cache as a ratio of (cache + available space)
+      // mapCacheBytes = 52428800 (50 MB), availableBytes = 5368709120 (5 GB)
+      // Expected: 50MB / (50MB + 5GB) ≈ 0.00967
+      final totalUsableSpace = storageInfo.mapCacheBytes + storageInfo.availableBytes;
+      final expectedPercentage = storageInfo.mapCacheBytes / totalUsableSpace;
+      expect(storageInfo.usedPercentage, closeTo(expectedPercentage, 0.0001));
     });
 
     test('mapCacheFormatted returns MB format for large sizes', () {
@@ -639,7 +642,37 @@ void main() {
         availableBytes: 0,
         totalBytes: 0,
       );
+      // When both mapCacheBytes and availableBytes are 0, usedPercentage should be 0
       expect(zeroStorage.usedPercentage, 0.0);
+    });
+
+    test('usedPercentage shows correct bar percentage for storage display', () {
+      // Test case: 0 cached, 10GB free -> bar should be nearly empty (0%)
+      final emptyCache = StorageInfo(
+        appStorageBytes: 0,
+        mapCacheBytes: 0,
+        availableBytes: 1073741824 * 10, // 10 GB
+        totalBytes: 1073741824 * 32, // 32 GB
+      );
+      expect(emptyCache.usedPercentage, 0.0);
+
+      // Test case: 5GB cached, 5GB free -> bar should be 50%
+      final halfFull = StorageInfo(
+        appStorageBytes: 0,
+        mapCacheBytes: 1073741824 * 5, // 5 GB
+        availableBytes: 1073741824 * 5, // 5 GB
+        totalBytes: 1073741824 * 32, // 32 GB
+      );
+      expect(halfFull.usedPercentage, closeTo(0.5, 0.01));
+
+      // Test case: lots cached, little free -> bar should be mostly filled
+      final mostlyFull = StorageInfo(
+        appStorageBytes: 0,
+        mapCacheBytes: 1073741824 * 9, // 9 GB
+        availableBytes: 1073741824 * 1, // 1 GB
+        totalBytes: 1073741824 * 32, // 32 GB
+      );
+      expect(mostlyFull.usedPercentage, closeTo(0.9, 0.01));
     });
   });
 }

@@ -402,15 +402,29 @@ void main() {
       });
 
       test('storage progress bar value is correct', () {
+        // usedPercentage represents map cache as a ratio of total usable space
+        // mapCacheBytes / (mapCacheBytes + availableBytes)
         const info = StorageInfo(
           appStorageBytes: 0,
-          mapCacheBytes: 0,
+          mapCacheBytes: 1073741824 * 2, // 2 GB cached
+          availableBytes: 1073741824 * 6, // 6 GB available
+          totalBytes: 1073741824 * 8, // 8 GB total device
+        );
+
+        // 2 GB cache out of (2 GB cache + 6 GB available) = 2/8 = 25%
+        expect(info.usedPercentage, closeTo(0.25, 0.01));
+      });
+
+      test('storage progress bar empty when no cache', () {
+        const info = StorageInfo(
+          appStorageBytes: 0,
+          mapCacheBytes: 0, // 0 cached
           availableBytes: 1073741824 * 6, // 6 GB available
           totalBytes: 1073741824 * 8, // 8 GB total
         );
 
-        // 2 GB used out of 8 GB = 25%
-        expect(info.usedPercentage, closeTo(0.25, 0.01));
+        // 0 cache means bar should show 0%
+        expect(info.usedPercentage, 0.0);
       });
     });
 

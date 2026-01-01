@@ -218,7 +218,9 @@ class MainScreenController extends ChangeNotifier {
     }
   }
 
-  /// Swap origin and destination
+  /// Swap origin and destination.
+  /// Note: Fare results are preserved on swap since the route distance
+  /// remains the same (just reversed direction).
   void swapLocations() {
     if (_originLocation == null && _destinationLocation == null) return;
 
@@ -231,7 +233,12 @@ class MainScreenController extends ChangeNotifier {
     _destinationLocation = tempLocation;
     _destinationLatLng = tempLatLng;
 
-    _resetResult();
+    // Note: We do NOT reset fare results on swap.
+    // The fare is based on distance which is the same regardless of direction.
+    // Only clear route points so they can be recalculated.
+    _routePoints = [];
+    _routeResult = null;
+    
     notifyListeners();
 
     if (_originLocation != null && _destinationLocation != null) {
@@ -311,10 +318,18 @@ class MainScreenController extends ChangeNotifier {
 
       final List<FareResult> results = [];
       final trafficFactor = await _settingsService.getTrafficFactor();
+      final hasSetPrefs = await _settingsService.hasSetTransportModePreferences();
       final hiddenModes = await _settingsService.getHiddenTransportModes();
 
       final visibleFormulas = _availableFormulas.where((formula) {
         final modeSubTypeKey = '${formula.mode}::${formula.subType}';
+        
+        if (!hasSetPrefs) {
+          // New user - use default enabled modes
+          final defaultModes = SettingsService.getDefaultEnabledModes();
+          return defaultModes.contains(modeSubTypeKey);
+        }
+        // Existing user - check hidden modes
         return !hiddenModes.contains(modeSubTypeKey);
       }).toList();
 
@@ -352,7 +367,7 @@ class MainScreenController extends ChangeNotifier {
         results.add(
           FareResult(
             transportMode: '${formula.mode} (${formula.subType})',
-            fare: fare,
+            fare: _passengerCount > 0 ? fare / _passengerCount : fare,
             indicatorLevel: indicator,
             isRecommended: false,
             passengerCount: _passengerCount,

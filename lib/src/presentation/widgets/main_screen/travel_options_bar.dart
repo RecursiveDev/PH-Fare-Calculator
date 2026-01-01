@@ -34,6 +34,22 @@ class TravelOptionsBar extends StatelessWidget {
 
   int get totalPassengers => regularPassengers + discountedPassengers;
 
+  /// Returns a user-friendly label for the sort criteria.
+  static String _getSortLabel(SortCriteria criteria) {
+    switch (criteria) {
+      case SortCriteria.priceAsc:
+        return 'Lowest';
+      case SortCriteria.priceDesc:
+        return 'Highest';
+      case SortCriteria.lowestOverall:
+        return 'Best Deal';
+      case SortCriteria.durationAsc:
+        return 'Fastest';
+      case SortCriteria.durationDesc:
+        return 'Slowest';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -133,34 +149,80 @@ class TravelOptionsBar extends StatelessWidget {
               ),
             ),
           const SizedBox(width: 8),
-          // Sort Chip
+          // Sort Chip - Popup Menu with all options
           Semantics(
             label:
-                'Sort by: ${sortCriteria == SortCriteria.priceAsc ? 'Price Low to High' : 'Price High to Low'}',
+                'Sort by: ${_getSortLabel(sortCriteria)}',
             button: true,
-            child: ActionChip(
-              avatar: Icon(
-                Icons.sort,
-                size: 18,
-                color: colorScheme.onSurfaceVariant,
+            child: PopupMenuButton<SortCriteria>(
+              onSelected: onSortChanged,
+              initialValue: sortCriteria,
+              position: PopupMenuPosition.under,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              label: Text(
-                sortCriteria == SortCriteria.priceAsc ? 'Lowest' : 'Highest',
-                style: textTheme.labelLarge?.copyWith(
-                  color: colorScheme.onSurface,
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: SortCriteria.priceAsc,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.arrow_upward_rounded,
+                        size: 18,
+                        color: colorScheme.onSurface,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Lowest Price'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: SortCriteria.priceDesc,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.arrow_downward_rounded,
+                        size: 18,
+                        color: colorScheme.onSurface,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Highest Price'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: SortCriteria.lowestOverall,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.star_outline_rounded,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Lowest Overall'),
+                    ],
+                  ),
+                ),
+              ],
+              child: Chip(
+                avatar: Icon(
+                  Icons.sort,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                label: Text(
+                  _getSortLabel(sortCriteria),
+                  style: textTheme.labelLarge?.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                backgroundColor: colorScheme.surfaceContainerLowest,
+                side: BorderSide(color: colorScheme.outlineVariant),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              backgroundColor: colorScheme.surfaceContainerLowest,
-              side: BorderSide(color: colorScheme.outlineVariant),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              onPressed: () {
-                final newCriteria = sortCriteria == SortCriteria.priceAsc
-                    ? SortCriteria.priceDesc
-                    : SortCriteria.priceAsc;
-                onSortChanged(newCriteria);
-              },
             ),
           ),
         ],
