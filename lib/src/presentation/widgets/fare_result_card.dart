@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/transit_colors.dart';
 import '../../models/fare_result.dart';
+import '../../models/transport_mode.dart';
 
 /// A modern, accessible fare result card widget.
 ///
@@ -202,20 +203,32 @@ class FareResultCard extends StatelessWidget {
   Widget _buildInfoSection(BuildContext context, Color statusColor) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    
+    // Parse transport mode to extract base name and subtype
+    final parsed = TransportMode.parseTransportMode(transportMode);
+    final baseName = parsed.baseName;
+    final subtype = parsed.subtype;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Transport mode name
-        Text(
-          transportMode,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: colorScheme.onSurface,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        // Transport mode name with optional subtype chip
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            Text(
+              baseName,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            if (subtype != null)
+              _buildSubtypeChip(context, subtype, statusColor),
+          ],
         ),
         const SizedBox(height: 4),
         // Distance and time info row
@@ -283,11 +296,40 @@ class FareResultCard extends StatelessWidget {
       ],
     );
   }
+  
+  /// Builds a styled chip/tag for the transport subtype.
+  Widget _buildSubtypeChip(BuildContext context, String subtype, Color statusColor) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: statusColor.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        subtype,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: statusColor,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
 
   /// Builds the price display section.
   Widget _buildPriceSection(BuildContext context, Color statusColor) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    // Calculate per-person fare: total divided by passenger count
+    // Guard against division by zero (should not happen, but be safe)
+    final perPersonFare = passengerCount > 0 ? totalFare / passengerCount : totalFare;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -318,7 +360,7 @@ class FareResultCard extends StatelessWidget {
         if (passengerCount > 1) ...[
           const SizedBox(height: 2),
           Text(
-            '₱${fare.toStringAsFixed(2)}/pax',
+            '₱${perPersonFare.toStringAsFixed(2)}/pax',
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),

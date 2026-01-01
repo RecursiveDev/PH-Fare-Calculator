@@ -39,6 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _isLoading = true;
 
   Set<String> _hiddenTransportModes = {};
+  bool _hasSetTransportModePreferences = false;
   Map<String, List<FareFormula>> _groupedFormulas = {};
 
   // App version info (loaded dynamically from pubspec.yaml)
@@ -69,6 +70,8 @@ class _SettingsScreenState extends State<SettingsScreen>
     final themeMode = await _settingsService.getThemeMode();
     final discountType = await _settingsService.getUserDiscountType();
     final hiddenModes = await _settingsService.getHiddenTransportModes();
+    final hasSetModePrefs = await _settingsService
+        .hasSetTransportModePreferences();
     final locale = await _settingsService.getLocale();
     final formulas = await _fareRepository.getAllFormulas();
 
@@ -103,6 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         _discountType = discountType;
         _currentLocale = locale;
         _hiddenTransportModes = hiddenModes;
+        _hasSetTransportModePreferences = hasSetModePrefs;
         _groupedFormulas = grouped;
         _appVersion = version;
         _buildNumber = buildNumber;
@@ -993,7 +997,11 @@ class _SettingsScreenState extends State<SettingsScreen>
               // Subtype Toggles using SwitchListTile for test compatibility
               ...formulas.map((formula) {
                 final modeSubTypeKey = '${formula.mode}::${formula.subType}';
-                final isHidden = _hiddenTransportModes.contains(modeSubTypeKey);
+                // For new users who haven't set any preferences, all modes are hidden (disabled) by default
+                // For users who have set preferences, check if mode is in the hidden set
+                final isHidden =
+                    !_hasSetTransportModePreferences ||
+                    _hiddenTransportModes.contains(modeSubTypeKey);
 
                 return SwitchListTile(
                   title: Text(
@@ -1021,6 +1029,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                     );
 
                     setState(() {
+                      // Mark that user has now set transport mode preferences
+                      _hasSetTransportModePreferences = true;
                       if (shouldHide) {
                         _hiddenTransportModes.add(modeSubTypeKey);
                       } else {

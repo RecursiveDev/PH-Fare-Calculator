@@ -197,26 +197,50 @@ jobs:
           | **ARM32 (armeabi-v7a)** | `${{ steps.apk_files.outputs.apk_armv7 }}` |
           | **x86_64** | `${{ steps.apk_files.outputs.apk_x86_64 }}` |
           
-          ### Changes
+          ## ✨ What's New
           EOF
           
-          # Try to get commits since last tag, or last 10 commits if no previous tag
+          # Determine range
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          
           if [ -n "$LAST_TAG" ]; then
-            echo "Changes since $LAST_TAG:" >> RELEASE_NOTES.md
-            echo "" >> RELEASE_NOTES.md
-            git log ${LAST_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges >> RELEASE_NOTES.md
+            RANGE="${LAST_TAG}..HEAD"
+            echo "Generating notes for range: $RANGE"
           else
-            echo "Recent commits:" >> RELEASE_NOTES.md
-            echo "" >> RELEASE_NOTES.md
-            git log -10 --pretty=format:"- %s (%h)" --no-merges >> RELEASE_NOTES.md
+            RANGE="HEAD~10..HEAD"
+            echo "No previous tag found, using last 10 commits"
+          fi
+          
+          # Features
+          echo "🚀 **New Features:**" >> RELEASE_NOTES.md
+          FEATURES=$(git log ${RANGE} --grep="✨\|feat" --pretty=format:"- %s" --no-merges || echo "")
+          if [ -n "$FEATURES" ]; then
+            echo "$FEATURES" >> RELEASE_NOTES.md
+          else
+            echo "- General improvements and updates" >> RELEASE_NOTES.md
+          fi
+          echo "" >> RELEASE_NOTES.md
+          
+          # Bug Fixes
+          echo "🐛 **Bug Fixes:**" >> RELEASE_NOTES.md
+          FIXES=$(git log ${RANGE} --grep="🐛\|fix" --pretty=format:"- %s" --no-merges || echo "")
+          if [ -n "$FIXES" ]; then
+            echo "$FIXES" >> RELEASE_NOTES.md
+          else
+            echo "- Stability improvements" >> RELEASE_NOTES.md
+          fi
+          echo "" >> RELEASE_NOTES.md
+          
+          # Improvements
+          echo "🎨 **Improvements:**" >> RELEASE_NOTES.md
+          IMPROVEMENTS=$(git log ${RANGE} --grep="🎨\|♻️\|🏗\|💄\|refactor\|perf" --pretty=format:"- %s" --no-merges || echo "")
+          if [ -n "$IMPROVEMENTS" ]; then
+            echo "$IMPROVEMENTS" >> RELEASE_NOTES.md
+          else
+            echo "- UI refinements and performance tweaks" >> RELEASE_NOTES.md
           fi
           
           echo "" >> RELEASE_NOTES.md
-          echo "" >> RELEASE_NOTES.md
           echo "---" >> RELEASE_NOTES.md
-          echo "" >> RELEASE_NOTES.md
           echo "_Built with Flutter on GitHub Actions_" >> RELEASE_NOTES.md
           
           # Output for debugging

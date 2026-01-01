@@ -107,4 +107,42 @@ enum TransportMode {
       orElse: () => TransportMode.jeepney, // Default fallback
     );
   }
+
+  /// Parses a transport mode string into its base mode name and optional subtype.
+  /// 
+  /// Examples:
+  /// - "Jeepney (Traditional)" -> ("Jeepney", "Traditional")
+  /// - "Bus (Aircon)" -> ("Bus", "Aircon")
+  /// - "Jeepney (Modern (PUJ))" -> ("Jeepney", "Modern (PUJ)")
+  /// - "Taxi" -> ("Taxi", null)
+  /// 
+  /// Returns a record with baseName and subtype (nullable).
+  static ({String baseName, String? subtype}) parseTransportMode(String mode) {
+    final trimmed = mode.trim();
+    
+    // Find the first opening parenthesis
+    final firstParenIndex = trimmed.indexOf('(');
+    
+    if (firstParenIndex == -1) {
+      // No subtype
+      return (baseName: trimmed, subtype: null);
+    }
+    
+    // Extract base name (everything before the first '(')
+    final baseName = trimmed.substring(0, firstParenIndex).trim();
+    
+    // Extract subtype (everything between first '(' and last ')')
+    final lastParenIndex = trimmed.lastIndexOf(')');
+    if (lastParenIndex <= firstParenIndex) {
+      // Malformed string, treat as no subtype
+      return (baseName: baseName, subtype: null);
+    }
+    
+    final subtype = trimmed.substring(firstParenIndex + 1, lastParenIndex).trim();
+    
+    return (
+      baseName: baseName,
+      subtype: subtype.isNotEmpty ? subtype : null,
+    );
+  }
 }

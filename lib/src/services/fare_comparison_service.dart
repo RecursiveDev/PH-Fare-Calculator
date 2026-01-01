@@ -4,7 +4,18 @@ import '../models/fare_result.dart';
 import '../core/constants/region_constants.dart';
 import 'transport_mode_filter_service.dart';
 
-enum SortCriteria { priceAsc, priceDesc, durationAsc, durationDesc }
+enum SortCriteria {
+  /// Sort by price ascending (lowest first) - grouped by mode
+  priceAsc,
+  /// Sort by price descending (highest first) - grouped by mode
+  priceDesc,
+  /// Sort by duration ascending (fastest first)
+  durationAsc,
+  /// Sort by duration descending (slowest first)
+  durationDesc,
+  /// Sort ALL fares by lowest price regardless of mode categorization
+  lowestOverall,
+}
 
 @lazySingleton
 class FareComparisonService {
@@ -117,6 +128,11 @@ class FareComparisonService {
         throw UnimplementedError(
           'Duration sorting requires duration data in FareResult',
         );
+      case SortCriteria.lowestOverall:
+        // Sort ALL results by lowest fare, ignoring mode categorization
+        // This flattens all results and sorts purely by price
+        sortedResults.sort((a, b) => a.totalFare.compareTo(b.totalFare));
+        break;
     }
 
     return sortedResults;

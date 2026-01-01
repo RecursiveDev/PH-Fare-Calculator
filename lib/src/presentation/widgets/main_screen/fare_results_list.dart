@@ -5,7 +5,11 @@ import '../../../models/transport_mode.dart';
 import '../../../services/fare_comparison_service.dart';
 import '../fare_result_card.dart';
 
-/// A widget that displays grouped fare results by transport mode.
+/// A widget that displays fare results.
+/// 
+/// When [sortCriteria] is [SortCriteria.lowestOverall], results are displayed
+/// as a flat list sorted by price (lowest first) without category headers.
+/// For other sort criteria, results are grouped by transport mode category.
 class FareResultsList extends StatelessWidget {
   final List<FareResult> fareResults;
   final SortCriteria sortCriteria;
@@ -20,6 +24,60 @@ class FareResultsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // For "Lowest Overall" sort, display a flat list without mode grouping
+    if (sortCriteria == SortCriteria.lowestOverall) {
+      return _buildFlatList(context);
+    }
+    
+    // For other sort criteria, display grouped by transport mode
+    return _buildGroupedList(context);
+  }
+
+  /// Builds a flat list of fare results sorted by price (lowest first).
+  /// No category headers - just a simple sorted list.
+  Widget _buildFlatList(BuildContext context) {
+    // Sort fare results by total fare ascending
+    final sortedFares = List<FareResult>.from(fareResults)
+      ..sort((a, b) => a.totalFare.compareTo(b.totalFare));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: sortedFares.asMap().entries.map((entry) {
+        final index = entry.key;
+        final result = entry.value;
+
+        return TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: Duration(milliseconds: 200 + (index * 50)),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) {
+            return Opacity(
+              opacity: value,
+              child: Transform.translate(
+                offset: Offset(0, 20 * (1 - value)),
+                child: child,
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: FareResultCard(
+              transportMode: result.transportMode,
+              fare: result.fare,
+              indicatorLevel: result.indicatorLevel,
+              isRecommended: result.isRecommended,
+              passengerCount: result.passengerCount,
+              totalFare: result.totalFare,
+              // Show base name + subtype chip (consistent across views)
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// Builds a grouped list of fare results organized by transport mode.
+  Widget _buildGroupedList(BuildContext context) {
     final groupedResults = fareComparisonService.groupFaresByMode(fareResults);
     final sortedGroups = groupedResults.entries.toList();
 
@@ -76,11 +134,12 @@ class FareResultsList extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: FareResultCard(
                     transportMode: result.transportMode,
-                    fare: result.totalFare,
+                    fare: result.fare,
                     indicatorLevel: result.indicatorLevel,
                     isRecommended: result.isRecommended,
                     passengerCount: result.passengerCount,
                     totalFare: result.totalFare,
+                    // Show base name + subtype chip (consistent with flat list)
                   ),
                 ),
               ),

@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/di/injection.dart';
+import '../../core/errors/failures.dart';
+import '../../models/location.dart';
+import '../../services/geocoding/geocoding_service.dart';
 import '../../services/offline/offline_map_service.dart';
 import '../widgets/offline_indicator.dart';
 
@@ -29,11 +34,19 @@ class MapPickerScreen extends StatefulWidget {
 class _MapPickerScreenState extends State<MapPickerScreen>
     with SingleTickerProviderStateMixin {
   late final MapController _mapController;
+  late final GeocodingService _geocodingService;
   LatLng? _selectedLocation;
   bool _isMapMoving = false;
+  final ValueNotifier<bool> _isSearchingLocation = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> _isLoadingAddress = ValueNotifier<bool>(false);
   String _addressText = 'Move map to select location';
-  final TextEditingController _searchController = TextEditingController();
-  bool _isSearching = false;
+
+  /// Debounce timer for reverse geocoding to avoid excessive API calls
+  /// during rapid map movements
+  Timer? _geocodeDebounceTimer;
+
+  /// Debounce duration for reverse geocoding (400ms)
+  static const Duration _geocodeDebounceDuration = Duration(milliseconds: 400);
 
   // Animation controller for pin bounce effect
   late final AnimationController _pinAnimationController;
@@ -47,6 +60,7 @@ class _MapPickerScreenState extends State<MapPickerScreen>
   void initState() {
     super.initState();
     _mapController = MapController();
+    _geocodingService = getIt<GeocodingService>();
     _selectedLocation = widget.initialLocation ?? _defaultCenter;
 
     // Initialize pin animation controller
@@ -79,8 +93,10 @@ class _MapPickerScreenState extends State<MapPickerScreen>
 
   @override
   void dispose() {
+    _geocodeDebounceTimer?.cancel();
     _pinAnimationController.dispose();
-    _searchController.dispose();
+    _isSearchingLocation.dispose();
+    _isLoadingAddress.dispose();
     super.dispose();
   }
 
@@ -88,13 +104,15 @@ class _MapPickerScreenState extends State<MapPickerScreen>
     if (event is MapEventMoveStart) {
       setState(() => _isMapMoving = true);
       _pinAnimationController.forward();
+      // Cancel any pending geocode request when movement starts
+      _geocodeDebounceTimer?.cancel();
     } else if (event is MapEventMoveEnd) {
       setState(() {
         _isMapMoving = false;
         _selectedLocation = _mapController.camera.center;
       });
       _pinAnimationController.reverse();
-      _updateAddress(_mapController.camera.center);
+      _debouncedUpdateAddress(_mapController.camera.center);
     } else if (event is MapEventMove) {
       // Update position during movement
       setState(() {
@@ -103,13 +121,46 @@ class _MapPickerScreenState extends State<MapPickerScreen>
     }
   }
 
-  void _updateAddress(LatLng location) {
-    // In a real app, this would call a geocoding service
-    // For now, we display the coordinates in a formatted way
-    setState(() {
-      _addressText =
-          '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}';
+  /// Debounced reverse geocoding to reduce API calls during rapid map movements.
+  /// Cancels any pending request and schedules a new one after the debounce period.
+  void _debouncedUpdateAddress(LatLng location) {
+    // Cancel any existing pending request
+    _geocodeDebounceTimer?.cancel();
+
+    // Show loading indicator immediately for better UX
+    _isLoadingAddress.value = true;
+
+    // Schedule the actual geocoding after the debounce period
+    _geocodeDebounceTimer = Timer(_geocodeDebounceDuration, () {
+      _updateAddress(location);
     });
+  }
+
+  void _updateAddress(LatLng location) async {
+    // Perform reverse geocoding to get the human-readable address
+    _isLoadingAddress.value = true;
+    
+    try {
+      final address = await _geocodingService.getAddressFromLatLng(
+        location.latitude,
+        location.longitude,
+      );
+      if (mounted) {
+        setState(() {
+          _addressText = address.name;
+        });
+      }
+    } catch (e) {
+      // Fallback to coordinates if geocoding fails
+      if (mounted) {
+        setState(() {
+          _addressText =
+              '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}';
+        });
+      }
+    } finally {
+      _isLoadingAddress.value = false;
+    }
   }
 
   void _confirmLocation() {
@@ -128,11 +179,36 @@ class _MapPickerScreenState extends State<MapPickerScreen>
     _updateAddress(_defaultCenter);
   }
 
-  void _onSearchSubmitted(String query) {
-    // In a real app, this would search for the location
-    // For now, we just close the search
+  Future<List<Location>> _searchLocations(String query) async {
+    if (query.trim().isEmpty) {
+      _isSearchingLocation.value = false;
+      return [];
+    }
+
+    // Set loading state before fetching
+    _isSearchingLocation.value = true;
+
+    try {
+      final results = await _geocodingService.getLocations(query);
+      return results;
+    } on Failure {
+      // Handle failures gracefully - return empty list
+      return [];
+    } catch (_) {
+      // Handle unexpected errors gracefully
+      return [];
+    } finally {
+      // Clear loading state after fetching
+      _isSearchingLocation.value = false;
+    }
+  }
+
+  void _onLocationSelected(Location location) {
+    final newLatLng = LatLng(location.latitude, location.longitude);
+    _mapController.move(newLatLng, 15.0);
     setState(() {
-      _isSearching = false;
+      _selectedLocation = newLatLng;
+      _addressText = location.name;
     });
     FocusScope.of(context).unfocus();
   }
@@ -368,54 +444,139 @@ class _MapPickerScreenState extends State<MapPickerScreen>
       child: Semantics(
         label: 'Search for a location',
         textField: true,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: _searchController,
-            onTap: () => setState(() => _isSearching = true),
-            onSubmitted: _onSearchSubmitted,
-            decoration: InputDecoration(
-              hintText: 'Search location...',
-              hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              ),
-              prefixIcon: Icon(
-                Icons.search_rounded,
-                color: colorScheme.primary,
-              ),
-              suffixIcon: _isSearching || _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(
-                        Icons.close_rounded,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _isSearching = false);
-                        FocusScope.of(context).unfocus();
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return Autocomplete<Location>(
+                  displayStringForOption: (Location option) => option.name,
+                  optionsBuilder: (TextEditingValue textEditingValue) async {
+                    if (textEditingValue.text.trim().isEmpty) {
+                      return const Iterable<Location>.empty();
+                    }
+                    return _searchLocations(textEditingValue.text);
+                  },
+                  onSelected: _onLocationSelected,
+                  fieldViewBuilder:
+                      (
+                        BuildContext context,
+                        TextEditingController textEditingController,
+                        FocusNode focusNode,
+                        VoidCallback onFieldSubmitted,
+                      ) {
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ValueListenableBuilder<bool>(
+                            valueListenable: _isSearchingLocation,
+                            builder: (context, isSearching, child) {
+                              return TextField(
+                                controller: textEditingController,
+                                focusNode: focusNode,
+                                decoration: InputDecoration(
+                                  hintText: 'Search location...',
+                                  hintStyle: theme.textTheme.bodyLarge
+                                      ?.copyWith(
+                                        color: colorScheme.onSurfaceVariant
+                                            .withValues(alpha: 0.6),
+                                      ),
+                                  prefixIcon: Icon(
+                                    Icons.search_rounded,
+                                    color: colorScheme.primary,
+                                  ),
+                                  suffixIcon: isSearching
+                                      ? Padding(
+                                          padding: const EdgeInsets.all(12),
+                                          child: SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: colorScheme.primary,
+                                            ),
+                                          ),
+                                        )
+                                      : (focusNode.hasFocus ||
+                                            textEditingController
+                                                .text
+                                                .isNotEmpty)
+                                      ? IconButton(
+                                          icon: Icon(
+                                            Icons.close_rounded,
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                          onPressed: () {
+                                            textEditingController.clear();
+                                            FocusScope.of(context).unfocus();
+                                          },
+                                        )
+                                      : null,
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
                       },
-                    )
-                  : null,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
+                  optionsViewBuilder: (context, onSelected, options) {
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        elevation: 4,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: constraints.maxWidth,
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shrinkWrap: true,
+                            itemCount: options.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              final Location option = options.elementAt(index);
+                              return ListTile(
+                                leading: Icon(
+                                  Icons.location_on_outlined,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                title: Text(
+                                  option.name,
+                                  style: theme.textTheme.bodyMedium,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () => onSelected(option),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -496,19 +657,56 @@ class _MapPickerScreenState extends State<MapPickerScreen>
                             const SizedBox(height: 4),
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 200),
-                              child: Text(
-                                _isMapMoving ? 'Moving...' : _addressText,
-                                key: ValueKey(
-                                  _isMapMoving ? 'moving' : _addressText,
-                                ),
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: _isMapMoving
-                                      ? colorScheme.onSurfaceVariant
-                                      : colorScheme.onSurface,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                              child: ValueListenableBuilder<bool>(
+                                valueListenable: _isLoadingAddress,
+                                builder: (context, isLoading, child) {
+                                  if (_isMapMoving) {
+                                    return Text(
+                                      'Moving...',
+                                      key: const ValueKey('moving'),
+                                      style: theme.textTheme.bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    );
+                                  } else if (isLoading) {
+                                    return Row(
+                                      key: const ValueKey('loading'),
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: colorScheme.primary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Getting address...',
+                                          style: theme.textTheme.bodyLarge?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  } else {
+                                    return Text(
+                                      _addressText,
+                                      key: ValueKey(_addressText),
+                                      style: theme.textTheme.bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurface,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    );
+                                  }
+                                },
                               ),
                             ),
                           ],

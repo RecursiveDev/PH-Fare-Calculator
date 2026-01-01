@@ -1,11 +1,10 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../../models/location.dart';
 
 /// A card widget containing origin and destination input fields with autocomplete.
-class LocationInputSection extends StatelessWidget {
+/// Input fields are limited to 2 lines with internal scrolling for longer addresses.
+class LocationInputSection extends StatefulWidget {
   final TextEditingController originController;
   final TextEditingController destinationController;
   final bool isLoadingLocation;
@@ -30,33 +29,76 @@ class LocationInputSection extends StatelessWidget {
     required this.onOpenMapPicker,
   });
 
-  // Fixed dimensions based on InputDecoration contentPadding and text style
-  // TextField height ≈ contentPadding.vertical * 2 + text line height ≈ 12*2 + 24 = 48
-  // Gap between fields = 12
-  // Total height = 48 + 12 + 48 = 108
-  // Origin icon center is at 24 (half of first field)
-  // Destination icon (16px) center is at 108 - 8 = 100
-  // Line should span from below origin circle (24 + 6 = 30) to above destination pin (100 - 8 = 92)
-  // Line height = 92 - 30 = 62
-  static const double _inputFieldHeight = 48;
-  static const double _fieldGap = 12;
+  @override
+  State<LocationInputSection> createState() => _LocationInputSectionState();
+}
+
+class _LocationInputSectionState extends State<LocationInputSection> {
+  // Sizes for route indicator elements
   static const double _originCircleSize = 12;
   static const double _destinationIconSize = 16;
+  static const double _fieldGap = 12;
+  // Minimum height for input fields to ensure consistent layout
+  static const double _minFieldHeight = 48;
+
+  // Keys to measure actual field heights for dynamic indicator positioning
+  final GlobalKey _originFieldKey = GlobalKey();
+  final GlobalKey _destinationFieldKey = GlobalKey();
+  
+  // Current measured heights (updated after layout)
+  double _originFieldHeight = _minFieldHeight;
+  double _destinationFieldHeight = _minFieldHeight;
+
+  @override
+  void initState() {
+    super.initState();
+    // Measure field heights after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _measureFieldHeights();
+    });
+  }
+
+  void _measureFieldHeights() {
+    final originContext = _originFieldKey.currentContext;
+    final destContext = _destinationFieldKey.currentContext;
+    
+    if (originContext != null && destContext != null) {
+      final originBox = originContext.findRenderObject() as RenderBox?;
+      final destBox = destContext.findRenderObject() as RenderBox?;
+      
+      if (originBox != null && destBox != null && originBox.hasSize && destBox.hasSize) {
+        final newOriginHeight = originBox.size.height;
+        final newDestHeight = destBox.size.height;
+        
+        if (newOriginHeight != _originFieldHeight || newDestHeight != _destinationFieldHeight) {
+          setState(() {
+            _originFieldHeight = newOriginHeight;
+            _destinationFieldHeight = newDestHeight;
+          });
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    // Total height of both fields + gap
-    const totalFieldsHeight = _inputFieldHeight * 2 + _fieldGap;
+    // Schedule a measurement after this frame completes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _measureFieldHeights();
+    });
 
-    // Calculate line height to connect from origin circle bottom to destination icon top
-    // Origin circle center at: _inputFieldHeight / 2 = 24
-    // Origin circle bottom at: 24 + 6 = 30
-    // Destination icon center at: _inputFieldHeight + _fieldGap + _inputFieldHeight / 2 = 84
-    // Destination icon top at: 84 - 8 = 76
-    // Line height = 76 - 30 = 46
-    const lineHeight = 46.0;
+    // Calculate dynamic heights for route indicator
+    final totalHeight = _originFieldHeight + _fieldGap + _destinationFieldHeight;
+    
+    // Line spans from center of origin field to center of destination field
+    // minus half of each indicator's size
+    final originCenter = _originFieldHeight / 2;
+    final destCenter = _originFieldHeight + _fieldGap + (_destinationFieldHeight / 2);
+    final lineTop = originCenter + (_originCircleSize / 2);
+    final lineBottom = destCenter - (_destinationIconSize / 2);
+    final lineHeight = (lineBottom - lineTop).clamp(0.0, double.infinity);
 
     return Card(
       elevation: 0,
@@ -69,14 +111,14 @@ class LocationInputSection extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Route Indicator - fixed height column with calculated positions
+            // Route Indicator - dynamically positioned based on field heights
             SizedBox(
-              height: totalFieldsHeight,
+              height: totalHeight,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   // Spacer to center origin circle with first field
-                  SizedBox(height: (_inputFieldHeight - _originCircleSize) / 2),
+                  SizedBox(height: (originCenter - (_originCircleSize / 2)).clamp(0.0, double.infinity)),
                   // Origin circle indicator
                   Container(
                     width: _originCircleSize,
@@ -86,7 +128,7 @@ class LocationInputSection extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                   ),
-                  // Connecting line
+                  // Connecting line - dynamically sized
                   Container(
                     width: 2,
                     height: lineHeight,
@@ -107,62 +149,46 @@ class LocationInputSection extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(
-                    height: _inputFieldHeight,
+                  // Origin field with key for measurement
+                  Container(
+                    key: _originFieldKey,
                     child: _LocationField(
                       label: 'Origin',
-                      controller: originController,
+                      controller: widget.originController,
                       isOrigin: true,
-                      isLoadingLocation: isLoadingLocation,
+                      isLoadingLocation: widget.isLoadingLocation,
                       onSearchLocations: (query) =>
-                          onSearchLocations(query, true),
-                      onLocationSelected: onOriginSelected,
-                      onUseCurrentLocation: onUseCurrentLocation,
-                      onOpenMapPicker: () => onOpenMapPicker(true),
+                          widget.onSearchLocations(query, true),
+                      onLocationSelected: widget.onOriginSelected,
+                      onUseCurrentLocation: widget.onUseCurrentLocation,
+                      onOpenMapPicker: () => widget.onOpenMapPicker(true),
                     ),
                   ),
                   const SizedBox(height: _fieldGap),
-                  SizedBox(
-                    height: _inputFieldHeight,
+                  // Destination field with key for measurement
+                  Container(
+                    key: _destinationFieldKey,
                     child: _LocationField(
                       label: 'Destination',
-                      controller: destinationController,
+                      controller: widget.destinationController,
                       isOrigin: false,
                       isLoadingLocation: false,
                       onSearchLocations: (query) =>
-                          onSearchLocations(query, false),
-                      onLocationSelected: onDestinationSelected,
+                          widget.onSearchLocations(query, false),
+                      onLocationSelected: widget.onDestinationSelected,
                       onUseCurrentLocation: null,
-                      onOpenMapPicker: () => onOpenMapPicker(false),
+                      onOpenMapPicker: () => widget.onOpenMapPicker(false),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            // Swap Button - centered vertically relative to both input fields
+            // Swap Button - centered vertically in the total height
             SizedBox(
-              height: totalFieldsHeight,
+              height: totalHeight,
               child: Center(
-                child: Semantics(
-                  label: 'Swap origin and destination',
-                  button: true,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.swap_vert_rounded,
-                      color: colorScheme.primary,
-                    ),
-                    onPressed: onSwapLocations,
-                    style: IconButton.styleFrom(
-                      backgroundColor: colorScheme.primaryContainer.withValues(
-                        alpha: 0.3,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
+                child: _SwapButton(onSwap: widget.onSwapLocations),
               ),
             ),
           ],
@@ -172,8 +198,41 @@ class LocationInputSection extends StatelessWidget {
   }
 }
 
+/// Swap button extracted for cleaner code and proper semantics
+class _SwapButton extends StatelessWidget {
+  final VoidCallback? onSwap;
+  
+  const _SwapButton({required this.onSwap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    return Semantics(
+      label: 'Swap origin and destination',
+      button: true,
+      child: IconButton(
+        icon: Icon(
+          Icons.swap_vert_rounded,
+          color: colorScheme.primary,
+        ),
+        onPressed: onSwap,
+        style: IconButton.styleFrom(
+          backgroundColor: colorScheme.primaryContainer.withValues(
+            alpha: 0.3,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Internal widget for individual location input field with autocomplete.
-class _LocationField extends StatelessWidget {
+/// Limited to 2 lines with internal scrolling for longer addresses.
+class _LocationField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final bool isOrigin;
@@ -195,41 +254,109 @@ class _LocationField extends StatelessWidget {
   });
 
   @override
+  State<_LocationField> createState() => _LocationFieldState();
+}
+
+class _LocationFieldState extends State<_LocationField> {
+  final ValueNotifier<bool> _isSearching = ValueNotifier<bool>(false);
+  double? _lastKnownWidth;
+  
+  /// Key used to force Autocomplete widget to rebuild when controller text changes externally
+  /// (e.g., during swap operations). Incremented when we detect external changes.
+  int _autocompleteRebuildKey = 0;
+  
+  /// Tracks the last known text to detect external changes
+  String _lastKnownText = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _lastKnownText = widget.controller.text;
+    widget.controller.addListener(_onControllerTextChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerTextChanged);
+    _isSearching.dispose();
+    super.dispose();
+  }
+  
+  /// Listener that detects external text changes (e.g., from swap operation)
+  /// and forces the Autocomplete to rebuild with the new text.
+  void _onControllerTextChanged() {
+    if (widget.controller.text != _lastKnownText) {
+      _lastKnownText = widget.controller.text;
+      // Force Autocomplete to rebuild with new initialValue
+      if (mounted) {
+        setState(() {
+          _autocompleteRebuildKey++;
+        });
+      }
+    }
+  }
+
+  Future<List<Location>> _handleOptionsBuilder(String query) async {
+    if (query.trim().isEmpty) {
+      _isSearching.value = false;
+      return const <Location>[];
+    }
+
+    // Set loading state before fetching
+    _isSearching.value = true;
+
+    try {
+      final results = await widget.onSearchLocations(query);
+      return results;
+    } finally {
+      // Delay clearing the loading state until after the current frame completes
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _isSearching.value = false;
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    // Use LayoutBuilder to capture width for autocomplete options
     return LayoutBuilder(
       builder: (context, constraints) {
+        _lastKnownWidth = constraints.maxWidth;
+        
         return Autocomplete<Location>(
+          // Key changes when external text update detected, forcing rebuild
+          key: ValueKey('${widget.isOrigin}_$_autocompleteRebuildKey'),
           displayStringForOption: (Location option) => option.name,
-          initialValue: TextEditingValue(text: controller.text),
+          initialValue: TextEditingValue(text: widget.controller.text),
           optionsBuilder: (TextEditingValue textEditingValue) async {
-            if (textEditingValue.text.trim().isEmpty) {
-              return const Iterable<Location>.empty();
-            }
-            return onSearchLocations(textEditingValue.text);
+            return _handleOptionsBuilder(textEditingValue.text);
           },
-          onSelected: onLocationSelected,
-          fieldViewBuilder:
-              (
-                BuildContext context,
-                TextEditingController textEditingController,
-                FocusNode focusNode,
-                VoidCallback onFieldSubmitted,
-              ) {
-                // Sync controller text
-                if (isOrigin && controller.text != textEditingController.text) {
-                  textEditingController.text = controller.text;
-                }
-                return Semantics(
-                  label: 'Input for $label location',
-                  textField: true,
-                  child: TextField(
+          onSelected: widget.onLocationSelected,
+          fieldViewBuilder: (
+            BuildContext context,
+            TextEditingController textEditingController,
+            FocusNode focusNode,
+            VoidCallback onFieldSubmitted,
+          ) {
+            return Semantics(
+              label: 'Input for ${widget.label} location',
+              textField: true,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _isSearching,
+                builder: (context, isSearching, child) {
+                  return TextField(
                     controller: textEditingController,
                     focusNode: focusNode,
                     style: Theme.of(context).textTheme.bodyLarge,
+                    maxLines: 2, // Limit to 2 lines
+                    minLines: 1, // Start with 1 line for short text
+                    keyboardType: TextInputType.streetAddress,
                     decoration: InputDecoration(
-                      hintText: label,
+                      hintText: widget.label,
                       filled: true,
                       fillColor: colorScheme.surfaceContainerLowest,
                       contentPadding: const EdgeInsets.symmetric(
@@ -243,7 +370,22 @@ class _LocationField extends StatelessWidget {
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (isOrigin && isLoadingLocation)
+                          // Show loading indicator when searching for suggestions
+                          if (isSearching)
+                            Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            )
+                          // Show current location loading indicator (origin only)
+                          else if (widget.isOrigin &&
+                              widget.isLoadingLocation)
                             const Padding(
                               padding: EdgeInsets.all(12),
                               child: SizedBox(
@@ -254,7 +396,9 @@ class _LocationField extends StatelessWidget {
                                 ),
                               ),
                             )
-                          else if (isOrigin && onUseCurrentLocation != null)
+                          // Show current location button (origin only)
+                          else if (widget.isOrigin &&
+                              widget.onUseCurrentLocation != null)
                             IconButton(
                               icon: Icon(
                                 Icons.my_location,
@@ -262,7 +406,7 @@ class _LocationField extends StatelessWidget {
                                 size: 20,
                               ),
                               tooltip: 'Use my current location',
-                              onPressed: onUseCurrentLocation,
+                              onPressed: widget.onUseCurrentLocation,
                             ),
                           IconButton(
                             icon: Icon(
@@ -271,14 +415,16 @@ class _LocationField extends StatelessWidget {
                               size: 20,
                             ),
                             tooltip: 'Select from map',
-                            onPressed: onOpenMapPicker,
+                            onPressed: widget.onOpenMapPicker,
                           ),
                         ],
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
+            );
+          },
           optionsViewBuilder: (context, onSelected, options) {
             return Align(
               alignment: Alignment.topLeft,
@@ -286,7 +432,7 @@ class _LocationField extends StatelessWidget {
                 elevation: 4,
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  width: constraints.maxWidth,
+                  width: _lastKnownWidth ?? constraints.maxWidth,
                   constraints: const BoxConstraints(maxHeight: 200),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
@@ -320,3 +466,4 @@ class _LocationField extends StatelessWidget {
     );
   }
 }
+

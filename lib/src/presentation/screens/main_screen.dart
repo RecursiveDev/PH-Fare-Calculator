@@ -6,8 +6,11 @@ import 'package:latlong2/latlong.dart';
 import '../../core/di/injection.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/connectivity_status.dart';
+import '../../models/fare_formula.dart';
+import '../../repositories/fare_repository.dart';
 import '../../services/connectivity/connectivity_service.dart';
 import '../../services/fare_comparison_service.dart';
+import '../../services/settings_service.dart';
 import '../controllers/main_screen_controller.dart';
 import '../widgets/main_screen/calculate_fare_button.dart';
 import '../widgets/main_screen/error_message_banner.dart';
@@ -19,6 +22,7 @@ import '../widgets/main_screen/main_screen_app_bar.dart';
 import '../widgets/main_screen/map_preview.dart';
 import '../widgets/main_screen/offline_status_banner.dart';
 import '../widgets/main_screen/passenger_bottom_sheet.dart';
+import '../widgets/main_screen/transport_mode_selection_modal.dart';
 import '../widgets/main_screen/travel_options_bar.dart';
 import 'map_picker_screen.dart';
 
@@ -34,20 +38,34 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   late final MainScreenController _controller;
   late final ConnectivityService _connectivityService;
+  late final SettingsService _settingsService;
+  late final FareRepository _fareRepository;
   final TextEditingController _originTextController = TextEditingController();
   final TextEditingController _destinationTextController =
       TextEditingController();
   StreamSubscription<ConnectivityStatus>? _connectivitySubscription;
   ConnectivityStatus _connectivityStatus = ConnectivityStatus.online;
 
+  /// Number of enabled transport modes (not hidden).
+  int _enabledModesCount = 0;
+
+  /// Total number of available transport modes.
+  int _totalModesCount = 0;
+
+  /// Cached list of all formulas for modal display.
+  List<FareFormula> _allFormulas = [];
+
   @override
   void initState() {
     super.initState();
     _controller = MainScreenController();
     _connectivityService = getIt<ConnectivityService>();
+    _settingsService = getIt<SettingsService>();
+    _fareRepository = getIt<FareRepository>();
     _controller.addListener(_onControllerChanged);
     _initializeData();
     _initConnectivity();
+    _loadTransportModeCounts();
   }
 
   Future<void> _initConnectivity() async {
@@ -59,6 +77,42 @@ class _MainScreenState extends State<MainScreen> {
         setState(() => _connectivityStatus = status);
       }
     });
+  }
+
+  /// Loads transport mode counts for the quick-access button badge.
+  Future<void> _loadTransportModeCounts() async {
+    try {
+      final allFormulas = await _fareRepository.getAllFormulas();
+      final hasSetPrefs = await _settingsService.hasSetTransportModePreferences();
+      final hiddenModes = await _settingsService.getHiddenTransportModes();
+
+      // Count unique mode-subtype combinations
+      final allModeKeys = <String>{};
+      for (final formula in allFormulas) {
+        allModeKeys.add('${formula.mode}::${formula.subType}');
+      }
+
+      int enabledCount;
+      if (!hasSetPrefs) {
+        // New user - count default enabled modes that exist in formulas
+        final defaultModes = SettingsService.getDefaultEnabledModes();
+        enabledCount = allModeKeys.where((key) => defaultModes.contains(key)).length;
+      } else {
+        // Existing user - count modes not in hidden set
+        enabledCount = allModeKeys.where((key) => !hiddenModes.contains(key)).length;
+      }
+
+      if (mounted) {
+        setState(() {
+          _allFormulas = allFormulas;
+          _totalModesCount = allModeKeys.length;
+          _enabledModesCount = enabledCount;
+        });
+      }
+    } catch (e) {
+      // Silently handle error - the button will show 0/0
+      debugPrint('Failed to load transport mode counts: $e');
+    }
   }
 
   @override
@@ -152,6 +206,9 @@ class _MainScreenState extends State<MainScreen> {
                       sortCriteria: _controller.sortCriteria,
                       onPassengerTap: _showPassengerBottomSheet,
                       onSortChanged: _controller.setSortCriteria,
+                      enabledModesCount: _enabledModesCount,
+                      totalModesCount: _totalModesCount,
+                      onTransportModesTap: _handleTransportModesTap,
                     ),
                     const SizedBox(height: 16),
                     // Map height: 280 when no fare results (40% larger), 200 when showing results
@@ -169,7 +226,7 @@ class _MainScreenState extends State<MainScreen> {
                     CalculateFareButton(
                       canCalculate: _controller.canCalculate,
                       isCalculating: _controller.isCalculating,
-                      onPressed: _controller.calculateFare,
+                      onPressed: _handleCalculateFare,
                     ),
                     if (_controller.errorMessage != null) ...[
                       const SizedBox(height: 16),
@@ -291,5 +348,86 @@ class _MainScreenState extends State<MainScreen> {
         ),
       );
     }
+  }
+
+  /// Handles the transport modes quick-access button tap.
+  /// Shows the transport mode selection modal and updates the count after.
+  Future<void> _handleTransportModesTap() async {
+    // Ensure we have formulas loaded
+    if (_allFormulas.isEmpty) {
+      await _loadTransportModeCounts();
+    }
+
+    if (!mounted || _allFormulas.isEmpty) return;
+
+    await TransportModeSelectionModal.show(
+      context: context,
+      settingsService: _settingsService,
+      availableFormulas: _allFormulas,
+    );
+
+    // Refresh the count after modal closes
+    await _loadTransportModeCounts();
+  }
+
+  /// Handles fare calculation with transport mode check.
+  /// If no transport modes are enabled, shows the mode selection modal first.
+  Future<void> _handleCalculateFare() async {
+    // Check if user has set transport mode preferences
+    final hasSetPreferences = await _settingsService
+        .hasSetTransportModePreferences();
+
+    if (!hasSetPreferences) {
+      // User hasn't set any preferences - show the modal
+      final allFormulas = await _fareRepository.getAllFormulas();
+
+      if (!mounted) return;
+
+      final confirmed = await TransportModeSelectionModal.show(
+        context: context,
+        settingsService: _settingsService,
+        availableFormulas: allFormulas,
+      );
+
+      // Refresh the count after modal closes
+      await _loadTransportModeCounts();
+
+      if (!confirmed) {
+        // User cancelled - don't proceed with fare calculation
+        return;
+      }
+    } else {
+      // User has set preferences, check if any modes are actually enabled
+      final hiddenModes = await _settingsService.getHiddenTransportModes();
+      final allFormulas = await _fareRepository.getAllFormulas();
+
+      // Check if ALL modes are hidden
+      final allModesHidden = allFormulas.every((formula) {
+        final modeSubTypeKey = '${formula.mode}::${formula.subType}';
+        return hiddenModes.contains(modeSubTypeKey);
+      });
+
+      if (allModesHidden) {
+        // All modes are hidden - show the modal
+        if (!mounted) return;
+
+        final confirmed = await TransportModeSelectionModal.show(
+          context: context,
+          settingsService: _settingsService,
+          availableFormulas: allFormulas,
+        );
+
+        // Refresh the count after modal closes
+        await _loadTransportModeCounts();
+
+        if (!confirmed) {
+          // User cancelled - don't proceed with fare calculation
+          return;
+        }
+      }
+    }
+
+    // Proceed with fare calculation
+    await _controller.calculateFare();
   }
 }

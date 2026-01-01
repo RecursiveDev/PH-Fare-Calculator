@@ -15,6 +15,8 @@ class SettingsService {
   static const String _keyUserDiscountType = 'user_discount_type';
   static const String _keyHasSetDiscountType = 'has_set_discount_type';
   static const String _keyHiddenTransportModes = 'hidden_transport_modes';
+  static const String _keyHasSetTransportModePreferences =
+      'has_set_transport_mode_preferences';
   static const String _keyLastLatitude = 'last_known_latitude';
   static const String _keyLastLongitude = 'last_known_longitude';
   static const String _keyLastLocationName = 'last_known_location_name';
@@ -143,7 +145,31 @@ class SettingsService {
     return prefs.getBool(_keyHasSetDiscountType) ?? false;
   }
 
-  /// Get the list of hidden transport modes (stored as "Mode::SubType" strings)
+  /// Check if the user has ever set their transport mode preferences.
+  /// New users (false) should have all modes disabled by default.
+  Future<bool> hasSetTransportModePreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyHasSetTransportModePreferences) ?? false;
+  }
+
+  /// Get the default enabled transport modes for new users.
+  /// Returns mode-subtype keys in format "Mode::SubType".
+  /// Default modes: Jeepney (Traditional, Modern), Bus (Traditional, Aircon), Taxi (White Regular).
+  /// These keys must match exactly with the sub_type values in fare_formulas.json.
+  static Set<String> getDefaultEnabledModes() {
+    return {
+      'Jeepney::Traditional',
+      'Jeepney::Modern (PUJ)',
+      'Bus::Traditional',
+      'Bus::Aircon',
+      'Taxi::White (Regular)',
+    };
+  }
+
+  /// Get the list of hidden transport modes (stored as "Mode::SubType" strings).
+  /// NOTE: For new users who haven't set preferences yet, this returns an empty set.
+  /// The caller should use hasSetTransportModePreferences() to check if all modes
+  /// should be treated as hidden (disabled) by default.
   Future<Set<String>> getHiddenTransportModes() async {
     final prefs = await SharedPreferences.getInstance();
     final hiddenList = prefs.getStringList(_keyHiddenTransportModes);
@@ -164,12 +190,25 @@ class SettingsService {
     }
 
     await prefs.setStringList(_keyHiddenTransportModes, hiddenModes.toList());
+    // Mark that the user has now set their transport mode preferences
+    await prefs.setBool(_keyHasSetTransportModePreferences, true);
   }
 
-  /// Check if a specific mode-subtype combination is hidden
+  /// Check if a specific mode-subtype combination is hidden.
+  /// Takes into account whether user has set preferences.
+  /// For new users who haven't set preferences, only default modes are enabled.
   Future<bool> isTransportModeHidden(String mode, String subType) async {
+    final hasSetPrefs = await hasSetTransportModePreferences();
+    final modeKey = '$mode::$subType';
+    
+    // For new users who haven't set any preferences, use default enabled modes
+    if (!hasSetPrefs) {
+      final defaultModes = getDefaultEnabledModes();
+      // If the mode is in the default enabled set, it's NOT hidden
+      return !defaultModes.contains(modeKey);
+    }
     final hiddenModes = await getHiddenTransportModes();
-    return hiddenModes.contains('$mode::$subType');
+    return hiddenModes.contains(modeKey);
   }
 
   /// Get the list of enabled transport modes (opposite of hidden modes)
