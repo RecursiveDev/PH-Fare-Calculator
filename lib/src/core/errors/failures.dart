@@ -41,3 +41,10 @@ class LocationPermissionDeniedForeverFailure extends Failure {
         'Location permission permanently denied. Please enable it in app settings.',
   ]);
 }
+
+class RateLimitFailure extends Failure {
+  const RateLimitFailure([
+    super.message =
+        'Too many requests. Please wait a moment before trying again.',
+  ]);
+}

@@ -52,8 +52,9 @@ class _MapPickerScreenState extends State<MapPickerScreen>
   /// during rapid map movements
   Timer? _geocodeDebounceTimer;
 
-  /// Debounce duration for reverse geocoding (400ms)
-  static const Duration _geocodeDebounceDuration = Duration(milliseconds: 400);
+  /// Debounce duration for reverse geocoding.
+  /// Kept above 1100ms to respect Nominatim's 1 request/second policy.
+  static const Duration _geocodeDebounceDuration = Duration(milliseconds: 1100);
 
   // Animation controller for pin bounce effect
   late final AnimationController _pinAnimationController;
