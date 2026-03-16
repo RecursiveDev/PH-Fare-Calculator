@@ -47,21 +47,21 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1024.RegionRepository>(() => _i1024.RegionRepository());
     gh.lazySingleton<_i831.ConnectivityService>(
         () => _i831.ConnectivityService());
+    gh.lazySingleton<_i190.GeocodingCacheService>(
+        () => _i190.GeocodingCacheService());
     gh.lazySingleton<_i1015.RouteCacheService>(
         () => _i1015.RouteCacheService());
     gh.lazySingleton<_i20.TrainFerryGraphService>(
         () => _i20.TrainFerryGraphService());
     gh.lazySingleton<_i263.TransportModeFilterService>(
         () => _i263.TransportModeFilterService());
-    gh.lazySingleton<_i190.GeocodingCacheService>(
-        () => _i190.GeocodingCacheService());
-    gh.lazySingleton<_i67.RoutingService>(
-      () => _i838.HaversineRoutingService(),
-      instanceName: 'haversine',
-    );
     gh.lazySingleton<_i67.RoutingService>(
       () => _i570.OsrmRoutingService(),
       instanceName: 'osrm',
+    );
+    gh.lazySingleton<_i67.RoutingService>(
+      () => _i838.HaversineRoutingService(),
+      instanceName: 'haversine',
     );
     gh.lazySingleton<_i805.OfflineMapService>(() => _i805.OfflineMapService(
           gh<_i831.ConnectivityService>(),
@@ -69,6 +69,12 @@ extension GetItInjectableX on _i174.GetIt {
         ));
     gh.lazySingleton<_i758.FareComparisonService>(() =>
         _i758.FareComparisonService(gh<_i263.TransportModeFilterService>()));
+    gh.lazySingleton<_i67.RoutingService>(() => _i589.RoutingServiceManager(
+          gh<_i67.RoutingService>(instanceName: 'osrm'),
+          gh<_i67.RoutingService>(instanceName: 'haversine'),
+          gh<_i1015.RouteCacheService>(),
+          gh<_i831.ConnectivityService>(),
+        ));
     gh.lazySingleton<_i518.OfflineModeService>(() => _i518.OfflineModeService(
           gh<_i831.ConnectivityService>(),
           gh<_i583.SettingsService>(),
@@ -79,12 +85,6 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i190.GeocodingCacheService>(),
               gh<_i518.OfflineModeService>(),
             ));
-    gh.lazySingleton<_i67.RoutingService>(() => _i589.RoutingServiceManager(
-          gh<_i67.RoutingService>(instanceName: 'osrm'),
-          gh<_i67.RoutingService>(instanceName: 'haversine'),
-          gh<_i1015.RouteCacheService>(),
-          gh<_i831.ConnectivityService>(),
-        ));
     gh.lazySingleton<_i925.RoutingRepository>(() => _i925.RoutingRepository(
           gh<_i67.RoutingService>(instanceName: 'osrm'),
           gh<_i1015.RouteCacheService>(),

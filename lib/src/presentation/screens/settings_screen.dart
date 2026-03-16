@@ -9,6 +9,7 @@ import '../../core/di/injection.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/discount_type.dart';
 import '../../models/fare_formula.dart';
+import '../../models/geocoding_provider.dart';
 import '../../models/transport_mode.dart';
 import '../../repositories/fare_repository.dart';
 import '../../services/offline/offline_map_service.dart';
@@ -51,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   Locale _currentLocale = const Locale('en');
   bool _isLoading = true;
 
+  GeocodingProvider _geocodingProvider = GeocodingProvider.nominatim;
   bool _offlineModeEnabled = false;
   bool _autoCacheEnabled = true;
   bool _autoCacheWifiOnly = true;
@@ -113,6 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     final trafficFactor = await _settingsService.getTrafficFactor();
     final themeMode = await _settingsService.getThemeMode();
     final discountType = await _settingsService.getUserDiscountType();
+    final geocodingProvider = await _settingsService.getGeocodingProvider();
     final hiddenModes = await _settingsService.getHiddenTransportModes();
     final hasSetModePrefs = await _settingsService
         .hasSetTransportModePreferences();
@@ -154,6 +157,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         _themeMode = themeMode;
         _trafficFactor = trafficFactor;
         _discountType = discountType;
+        _geocodingProvider = geocodingProvider;
         _currentLocale = locale;
         _hiddenTransportModes = hiddenModes;
         _hasSetTransportModePreferences = hasSetModePrefs;
@@ -226,6 +230,28 @@ class _SettingsScreenState extends State<SettingsScreen>
                           await _settingsService.setProvincialMode(value);
                         },
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Map API Provider Section
+                  _buildSectionHeader(
+                    context,
+                    icon: Icons.map_rounded,
+                    title: 'Map API Provider',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSettingsCard(
+                    context,
+                    children: [
+                      _buildGeocodingProviderTile(
+                          context, GeocodingProvider.nominatim),
+                      const Divider(height: 1, indent: 56),
+                      _buildGeocodingProviderTile(
+                          context, GeocodingProvider.locationIQ),
+                      const Divider(height: 1, indent: 56),
+                      _buildGeocodingProviderTile(
+                          context, GeocodingProvider.geoapify),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -538,6 +564,59 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildGeocodingProviderTile(
+      BuildContext context, GeocodingProvider provider) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isSelected = _geocodingProvider == provider;
+    final needsKey = provider.requiresApiKey;
+    final keyMissing = (provider == GeocodingProvider.locationIQ &&
+            AppConstants.locationIQApiKey == 'YOUR_LOCATIONIQ_API_KEY') ||
+        (provider == GeocodingProvider.geoapify &&
+            AppConstants.geoapifyApiKey == 'YOUR_GEOAPIFY_API_KEY');
+
+    return ListTile(
+      leading: Icon(
+        Icons.language_rounded,
+        color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+      ),
+      title: Text(
+        provider.displayName,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            provider.description,
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: colorScheme.onSurfaceVariant),
+          ),
+          if (needsKey && keyMissing)
+            Text(
+              'API key required — add to AppConstants',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.error,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+        ],
+      ),
+      trailing: isSelected
+          ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
+          : null,
+      onTap: needsKey && keyMissing
+          ? null
+          : () async {
+              setState(() => _geocodingProvider = provider);
+              await _settingsService.setGeocodingProvider(provider);
+            },
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/discount_type.dart';
+import '../models/geocoding_provider.dart';
 import '../models/location.dart';
 
 enum TrafficFactor { low, medium, high }
@@ -24,7 +25,7 @@ class SettingsService {
   static const String _keyAutoCacheEnabled = 'auto_cache_enabled';
   static const String _keyAutoCacheWifiOnly = 'auto_cache_wifi_only';
   static const String _keyOfflineModeMigrated = 'offline_mode_migrated';
-
+  static const String _keyGeocodingProvider = 'geocoding_provider';
 
   /// Notifier for theme mode changes. Values: 'system', 'light', 'dark'
   /// Default is 'light' for first-time users.
@@ -35,6 +36,8 @@ class SettingsService {
   static final ValueNotifier<DiscountType> discountTypeNotifier = ValueNotifier(
     DiscountType.standard,
   );
+  static final ValueNotifier<GeocodingProvider> geocodingProviderNotifier =
+      ValueNotifier(GeocodingProvider.nominatim);
 
   Future<bool> getProvincialMode() async {
     final prefs = await SharedPreferences.getInstance();
@@ -304,6 +307,32 @@ class SettingsService {
   Future<void> setMigratedToOfflineMode(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyOfflineModeMigrated, value);
+  }
+
+  /// Get the active geocoding provider.
+  Future<GeocodingProvider> getGeocodingProvider() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_keyGeocodingProvider);
+    if (value == null) return GeocodingProvider.nominatim;
+    try {
+      final provider = GeocodingProvider.values.firstWhere(
+        (e) => e.name == value,
+        orElse: () => GeocodingProvider.nominatim,
+      );
+      if (geocodingProviderNotifier.value != provider) {
+        geocodingProviderNotifier.value = provider;
+      }
+      return provider;
+    } catch (_) {
+      return GeocodingProvider.nominatim;
+    }
+  }
+
+  /// Set the active geocoding provider.
+  Future<void> setGeocodingProvider(GeocodingProvider provider) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyGeocodingProvider, provider.name);
+    geocodingProviderNotifier.value = provider;
   }
 }
 
