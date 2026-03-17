@@ -10,6 +10,7 @@ import 'package:pasahe/src/models/accuracy_level.dart';
 import 'package:pasahe/src/models/connectivity_status.dart';
 import 'package:pasahe/src/models/discount_type.dart';
 import 'package:pasahe/src/models/fare_formula.dart';
+import 'package:pasahe/src/models/geocoding_provider.dart';
 import 'package:pasahe/src/models/fare_result.dart';
 import 'package:pasahe/src/models/location.dart';
 import 'package:pasahe/src/models/map_region.dart';
@@ -242,6 +243,16 @@ class MockSettingsService implements SettingsService {
   @override
   Future<void> setMigratedToOfflineMode(bool value) async {
     offlineModeMigrated = value;
+  }
+
+  GeocodingProvider geocodingProvider = GeocodingProvider.nominatim;
+
+  @override
+  Future<GeocodingProvider> getGeocodingProvider() async => geocodingProvider;
+
+  @override
+  Future<void> setGeocodingProvider(GeocodingProvider provider) async {
+    geocodingProvider = provider;
   }
 }
 
